@@ -44,8 +44,25 @@ final placesListProvider =
       totalPass = const ['yes'];
   }
 
-  // Só após GPS negado/off: cidade piloto. Enquanto unknown/granted → QA GPS.
+  // GPS negado → cidade piloto. Com GPS, usa posição real (live) ou QA (WireMock).
   if (loc.showDeniedBanner) {
+    return repo.listByCity(
+      citySlug: 'sao-paulo',
+      priceType: priceType,
+      totalPass: totalPass,
+    );
+  }
+
+  if (loc.lat != null && loc.lng != null) {
+    return repo.listNearby(
+      lat: loc.lat!,
+      lng: loc.lng!,
+      priceType: priceType,
+      totalPass: totalPass,
+    );
+  }
+
+  if (!loc.isGranted) {
     return repo.listByCity(
       citySlug: 'sao-paulo',
       priceType: priceType,

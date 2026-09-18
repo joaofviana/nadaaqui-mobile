@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/config/api_config.dart';
 import '../../../core/location/geo_math.dart';
 import '../../../core/location/location_controller.dart';
 import '../../../core/network/api_error.dart';
@@ -56,13 +57,25 @@ class _PlaceDetailScreenState extends ConsumerState<PlaceDetailScreen> {
     try {
       final cfg = await ref.read(remoteConfigProvider.future);
       final repo = ref.read(checkInsRepositoryProvider);
+      final loc = ref.read(locationControllerProvider);
+      final lat = loc.lat ?? (ApiConfig.useSupabase ? null : QaGps.lat);
+      final lng = loc.lng ?? (ApiConfig.useSupabase ? null : QaGps.lng);
+      if (lat == null || lng == null) {
+        setState(() => _lastError = 'Sem GPS. Ative a localização para fazer check-in.');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Ative o GPS para fazer check-in.')),
+          );
+        }
+        return;
+      }
       final res = await repo.checkIn(
         placeId: widget.placeId,
-        lat: QaGps.lat,
-        lng: QaGps.lng,
-        accuracyMeters: _accuracyMeters,
+        lat: lat,
+        lng: lng,
+        accuracyMeters: loc.accuracyMeters ?? _accuracyMeters,
         capturedAt: DateTime.now(),
-        mockScenario: _mockScenario,
+        mockScenario: ApiConfig.useSupabase ? null : _mockScenario,
       );
       PresenceResponse presence;
       try {
@@ -134,11 +147,13 @@ class _PlaceDetailScreenState extends ConsumerState<PlaceDetailScreen> {
               defaultRadiusFallback;
 
           int? dist;
-          if (gpsOk) {
+          final userLat = loc.lat ?? (ApiConfig.useSupabase ? null : QaGps.lat);
+          final userLng = loc.lng ?? (ApiConfig.useSupabase ? null : QaGps.lng);
+          if (gpsOk && userLat != null && userLng != null) {
             dist = place.distanceMeters ??
                 distanceMetersBetween(
-                  lat1: QaGps.lat,
-                  lng1: QaGps.lng,
+                  lat1: userLat,
+                  lng1: userLng,
                   lat2: place.lat,
                   lng2: place.lng,
                 );

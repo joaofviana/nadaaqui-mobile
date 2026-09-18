@@ -20,6 +20,21 @@ class PlacesRepository {
 
   final PlacesApi _api;
 
+  /// Lista por GPS real (live) ou QA (WireMock).
+  Future<PlaceListResponse> listNearby({
+    required double lat,
+    required double lng,
+    List<String>? priceType,
+    List<String>? totalPass,
+  }) {
+    return _api.listPlaces(
+      lat: lat,
+      lng: lng,
+      priceType: priceType,
+      totalPass: totalPass,
+    );
+  }
+
   Future<PlaceListResponse> listNearQa({
     List<String>? priceType,
     List<String>? totalPass,
