@@ -1,6 +1,8 @@
 name: apk
 on:
   workflow_dispatch:
+  push:
+    branches: [feat/compose-screens]
 jobs:
   build:
     runs-on: ubuntu-latest
