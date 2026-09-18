@@ -1,91 +1,64 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../core/config/api_config.dart';
 import '../../core/session/session_store.dart';
-import '../../data/models/auth_session.dart';
-import '../../data/models/user.dart';
 import '../theme/app_colors.dart';
 
 /// G-GUEST: ações sociais pedem login; ficha/mapa/lista são leitura livre.
 bool isGuest(WidgetRef ref) => ref.watch(sessionStoreProvider) == null;
 
-/// Mostra gate de login. Em smoke WireMock, “Entrar (QA)” injeta sessão mock.
+/// Abre a tela de login. Sem token mock na ficha.
 Future<bool> ensureLoggedIn(BuildContext context, WidgetRef ref) async {
   if (ref.read(sessionStoreProvider.notifier).isAuthenticated) return true;
 
-  final tokens = NadaTokens.of(context);
-  final ok = await showModalBottomSheet<bool>(
-    context: context,
-    backgroundColor: tokens.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-    ),
-    builder: (ctx) {
-      return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: tokens.border,
-                    borderRadius: BorderRadius.circular(2),
+  if (!ApiConfig.useSupabase) {
+    final tokens = NadaTokens.of(context);
+    if (!context.mounted) return false;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: tokens.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Build de mock',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: tokens.text,
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Faça login para continuar',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: tokens.text,
+                const SizedBox(height: 8),
+                Text(
+                  'Compile com --dart-define=SUPABASE_URL e SUPABASE_ANON_KEY '
+                  'para entrar de verdade. Sessão mock foi removida.',
+                  style: TextStyle(color: tokens.textMuted, height: 1.4),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Check-in e ações sociais pedem uma conta. '
-                'Mapa e ficha continuam livres para visitantes.',
-                style: TextStyle(color: tokens.textMuted, height: 1.4),
-              ),
-              const SizedBox(height: 20),
-              FilledButton(
-                onPressed: () {
-                  ref.read(sessionStoreProvider.notifier).setSession(
-                        const AuthSession(
-                          accessToken: 'mock-access-token',
-                          refreshToken: 'mock-refresh-token',
-                          expiresIn: 3600,
-                          user: User(
-                            id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-                            email: 'qa@nadaaqui.app',
-                            displayName: 'QA Tester',
-                            showInPresence: true,
-                          ),
-                        ),
-                      );
-                  Navigator.pop(ctx, true);
-                },
-                child: const Text('Entrar (QA)'),
-              ),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(
-                  'Agora não',
-                  style: TextStyle(color: tokens.textMuted),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Ok'),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      );
-    },
-  );
-  return ok == true;
+        );
+      },
+    );
+    return false;
+  }
+
+  final result = await context.push<bool>('/entrar');
+  return result == true &&
+      ref.read(sessionStoreProvider.notifier).isAuthenticated;
 }
