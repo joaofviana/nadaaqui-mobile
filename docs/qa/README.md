@@ -10,7 +10,8 @@ Documentação de qualidade do app mobile: critérios de teste, cruzamento UX×C
 | [ux-ct-cruzamento.md](./ux-ct-cruzamento.md) | Cruzamento entre fluxos UX e critérios de teste |
 | [smoke-sprint1-resultado.md](./smoke-sprint1-resultado.md) | Resultado do smoke da Sprint 1 |
 | [smoke-sprint2-peek-rerun.md](./smoke-sprint2-peek-rerun.md) | Smoke Sprint 2 (peek / re-execução) |
-| [qa-preview-p0.md](./qa-preview-p0.md) | Checklist / notas de QA do preview P0 |
+| [smoke-live.md](./smoke-live.md) | Smoke ponta a ponta **live** (F7) |
+| [smoke-live-resultado.md](./smoke-live-resultado.md) | Pass/fail por linha, data, SHA |
 
 ## Uso
 
