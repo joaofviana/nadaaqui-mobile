@@ -333,13 +333,11 @@ class _NearbyPoolCard extends StatelessWidget {
                 spacing: 6,
                 runSpacing: 6,
                 children: [
-                  if (pool.covered)
-                    _Tag(label: 'Coberta', accent: true),
-                  if (pool.heated)
-                    _Tag(label: 'Aquecida', accent: true),
+                  if (pool.covered) const _Tag(label: 'Coberta', accent: true),
+                  if (pool.heated) const _Tag(label: 'Aquecida', accent: true),
                   _Tag(label: pool.accessLabel),
                   if (pool.totalPass)
-                    _Tag(label: 'Total Pass', accent: true),
+                    const _Tag(label: 'Total Pass', accent: true),
                 ],
               ),
               if (pool.relatos != null || pool.comentarios != null) ...[
@@ -375,18 +373,16 @@ class _CompactNearbyCard extends StatelessWidget {
       child: Material(
         color: t.surface,
         borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                height: 72,
+                height: 64,
+                width: double.infinity,
                 decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(16),
-                  ),
                   gradient: LinearGradient(
                     colors: [
                       t.accent.withValues(alpha: 0.85),
@@ -398,31 +394,38 @@ class _CompactNearbyCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      pool.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: t.text,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        pool.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: t.text,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${formatDistanceMeters(pool.distanceMeters)} · ${pool.tipo}',
-                      style: TextStyle(color: t.textMuted, fontSize: 11),
-                    ),
-                    Text(
-                      '${pool.presence.label} · ${pool.accessLabel}',
-                      style: TextStyle(color: t.textMuted, fontSize: 11),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        '${formatDistanceMeters(pool.distanceMeters)} · ${pool.tipo}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: t.textMuted, fontSize: 11),
+                      ),
+                      Text(
+                        '${pool.presence.label} · ${pool.accessLabel}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: t.textMuted, fontSize: 11),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
