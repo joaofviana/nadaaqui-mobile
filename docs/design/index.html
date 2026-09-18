@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>NadaAqui — Preview UX</title>
+<style>
+  :root { --teal:#0D9488; --text:#0F1419; --muted:#536471; --bg:#f7f9f9; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); }
+  header { padding:28px 24px 8px; max-width:1100px; margin:0 auto; }
+  header h1 { margin:0 0 6px; color:var(--teal); font-size:28px; }
+  header p { margin:0; color:var(--muted); font-size:15px; }
+  nav { display:flex; flex-wrap:wrap; gap:8px; padding:16px 24px; max-width:1100px; margin:0 auto; }
+  nav a { text-decoration:none; color:var(--text); border:1px solid #CFD9DE; background:#fff; padding:8px 14px; border-radius:999px; font-size:13px; }
+  nav a:hover { border-color:var(--teal); color:var(--teal); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:24px; padding:8px 24px 48px; max-width:1100px; margin:0 auto; }
+  figure { margin:0; background:#fff; border:1px solid #EFF3F4; border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+  figure img { width:100%; display:block; background:#111; }
+  figcaption { padding:12px 14px; font-size:13px; color:var(--muted); }
+  figcaption strong { display:block; color:var(--text); font-size:14px; margin-bottom:2px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>NadaAqui</h1>
+  <p>Preview UX — twitter-minimal (Sprint 1 P0). Toque numa tela pra abrir em tamanho cheio.</p>
+</header>
+<nav>
+  <a href="twitter-minimal/01-mapa.png">Mapa</a>
+  <a href="twitter-minimal/02-ficha-local.png">Ficha</a>
+  <a href="twitter-minimal/03-feed.png">Feed</a>
+  <a href="twitter-minimal/04-checkin-feito.png">Check-in</a>
+  <a href="twitter-minimal/05-gps-negado.png">GPS negado</a>
+  <a href="twitter-minimal/01b-mapa-guest.png">Mapa guest</a>
+  <a href="twitter-minimal/02d-ficha-guest.png">Ficha guest</a>
+</nav>
+<section class="grid">
+  <figure><a href="twitter-minimal/01-mapa.png"><img src="twitter-minimal/01-mapa.png" alt="Mapa"/></a><figcaption><strong>01 · Mapa</strong>Chips + sheet com chip de distância</figcaption></figure>
+  <figure><a href="twitter-minimal/02-ficha-local.png"><img src="twitter-minimal/02-ficha-local.png" alt="Ficha"/></a><figcaption><strong>02 · Ficha</strong>Chip verde ≤150 m</figcaption></figure>
+  <figure><a href="twitter-minimal/02b-ficha-ambar.png"><img src="twitter-minimal/02b-ficha-ambar.png" alt="Ficha âmbar"/></a><figcaption><strong>02b · Ficha âmbar</strong>≤300 m</figcaption></figure>
+  <figure><a href="twitter-minimal/02c-ficha-cinza.png"><img src="twitter-minimal/02c-ficha-cinza.png" alt="Ficha cinza"/></a><figcaption><strong>02c · Ficha cinza</strong>&gt;300 m</figcaption></figure>
+  <figure><a href="twitter-minimal/03-feed.png"><img src="twitter-minimal/03-feed.png" alt="Feed"/></a><figcaption><strong>03 · Feed</strong>Timeline 1 coluna</figcaption></figure>
+  <figure><a href="twitter-minimal/04-checkin-feito.png"><img src="twitter-minimal/04-checkin-feito.png" alt="Check-in"/></a><figcaption><strong>04 · Check-in feito</strong>Privacidade + ações</figcaption></figure>
+  <figure><a href="twitter-minimal/05-gps-negado.png"><img src="twitter-minimal/05-gps-negado.png" alt="GPS"/></a><figcaption><strong>05 · GPS negado</strong>Banner + Abrir configurações</figcaption></figure>
+  <figure><a href="twitter-minimal/01b-mapa-guest.png"><img src="twitter-minimal/01b-mapa-guest.png" alt="Guest mapa"/></a><figcaption><strong>01b · Mapa guest</strong>CTA entrar</figcaption></figure>
+  <figure><a href="twitter-minimal/02d-ficha-guest.png"><img src="twitter-minimal/02d-ficha-guest.png" alt="Guest ficha"/></a><figcaption><strong>02d · Ficha guest</strong>+N ocultos</figcaption></figure>
+</section>
+</body>
+</html>
