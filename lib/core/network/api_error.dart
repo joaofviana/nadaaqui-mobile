@@ -48,16 +48,25 @@ class ApiError extends Equatable implements Exception {
     Map<String, dynamic> json, {
     int? statusCode,
   }) {
+    final inner = json['error'];
+    final map = inner is Map
+        ? Map<String, dynamic>.from(inner)
+        : json;
     return ApiError(
-      code: ApiErrorCode.fromWire(json['code'] as String?),
-      message: (json['message'] as String?) ?? 'Erro desconhecido',
-      details: json['details'] is Map<String, dynamic>
-          ? json['details'] as Map<String, dynamic>
-          : json['details'] is Map
-              ? Map<String, dynamic>.from(json['details'] as Map)
+      code: ApiErrorCode.fromWire(map['code'] as String?),
+      message: (map['message'] as String?) ?? 'Erro desconhecido',
+      details: map['details'] is Map<String, dynamic>
+          ? map['details'] as Map<String, dynamic>
+          : map['details'] is Map
+              ? Map<String, dynamic>.from(map['details'] as Map)
               : null,
       statusCode: statusCode,
     );
+  }
+
+  /// Envelope RPC `{ "error": { code, message, details } }` (HTTP 200).
+  factory ApiError.fromRpc(Map<String, dynamic> body, {int? statusCode}) {
+    return ApiError.fromJson(body, statusCode: statusCode);
   }
 
   /// Extrai ErrorBody de um [DioException] (resposta JSON ou fallback).
