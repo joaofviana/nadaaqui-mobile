@@ -16,8 +16,11 @@ class AuthApi {
   bool get _live => ApiConfig.useSupabase;
 
   String get _authRoot {
-    final root = ApiConfig.supabaseUrl.trim().replaceAll(RegExp(r'/+\$'), '');
-    return '$${root}/auth/v1';
+    var root = ApiConfig.supabaseUrl.trim();
+    while (root.endsWith('/')) {
+      root = root.substring(0, root.length - 1);
+    }
+    return root + '/auth/v1';
   }
 
   Options get _anonOptions => Options(
