@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<link rel="stylesheet" href="tokens.css"/>
+<!-- Brand kit official #4: ../logo/mark.png + ../logo/wordmark-dark.png -->
+<style>
+  /* tabbar: locked 5-col + badge via tokens.css */
+  .appbar { background: var(--surface); }
+  .brand-lockup { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
+  .brand-lockup .mark {
+    width: 56px; height: 56px; border-radius: 14px; object-fit: cover; flex-shrink: 0;
+    background: #fff;
+  }
+  .search {
+    margin: 8px 40px 20px;
+    height: 84px; border-radius: 22px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; gap: 18px;
+    padding: 0 28px; color: var(--text-muted); font-size: 28px;
+    flex-shrink: 0;
+  }
+  .search svg { width: 36px; height: 36px; stroke: currentColor; fill: none; stroke-width: 2; flex-shrink: 0; }
+  .home-scroll {
+    padding: 0 40px 40px;
+    display: flex; flex-direction: column; gap: 36px;
+    overflow: hidden;
+  }
+  .feat {
+    background: var(--surface);
+    border-radius: 28px;
+    padding: 28px 32px 24px;
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 24px rgba(2,132,199,0.08);
+  }
+  .feat-head {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 22px;
+  }
+  .feat-head .sec-ic {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: #E0F2FE; color: var(--accent);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .feat-head .sec-ic svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .feat-head .sec-title {
+    flex: 1; font-size: 28px; font-weight: 700; color: var(--text); letter-spacing: -0.2px;
+  }
+  .carousel-ctrls {
+    display: flex; align-items: center; gap: 10px; color: var(--text-muted);
+  }
+  .carousel-ctrls .arr {
+    width: 44px; height: 44px; border-radius: 50%;
+    border: 1px solid var(--border); background: var(--surface2);
+    display: flex; align-items: center; justify-content: center; color: var(--text);
+  }
+  .carousel-ctrls .arr svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2.4; }
+  .dots { display: flex; gap: 8px; align-items: center; padding: 0 4px; }
+  .dots i { width: 10px; height: 10px; border-radius: 50%; background: #7DD3FC; display: block; }
+  .dots i.on { width: 22px; border-radius: 6px; background: #0284C7; }
+  .pool-name { font-size: 36px; font-weight: 800; letter-spacing: -0.6px; margin-bottom: 8px; color: var(--text); }
+  .pool-sub { font-size: 26px; color: var(--text-muted); margin-bottom: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .presence {
+    display: inline-flex; align-items: center; gap: 12px;
+    padding: 14px 20px; border-radius: 16px;
+    background: var(--surface2); border: 1px solid var(--hairline);
+    margin-bottom: 18px;
+    font-size: 26px; font-weight: 600; color: var(--text);
+  }
+  .presence .dot {
+    width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
+  }
+  .presence.vazio .dot { background: #15803D; box-shadow: 0 0 0 4px rgba(21,128,61,0.18); }
+  .presence.pouca .dot { background: #B45309; box-shadow: 0 0 0 4px rgba(180,83,9,0.18); }
+  .presence.cheio .dot { background: #DC2626; box-shadow: 0 0 0 4px rgba(220,38,38,0.18); }
+  .presence .count { color: var(--text-muted); font-weight: 500; }
+  .tag-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
+  .feat-foot {
+    border-top: 1px solid var(--hairline);
+    padding-top: 16px; margin-top: 4px;
+    font-size: 24px; color: var(--text-muted);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .feat-foot .mini { width: 10px; height: 10px; border-radius: 50%; background: #0284C7; }
+  .sec-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .sec-head h3 {
+    font-size: 24px; font-weight: 700; letter-spacing: 1.2px;
+    text-transform: uppercase; color: var(--text-muted);
+  }
+  .sec-head a { font-size: 26px; color: var(--text-muted); text-decoration: none; font-weight: 500; }
+  .h-cards { display: flex; gap: 20px; overflow: hidden; }
+  .h-card {
+    width: 420px; flex-shrink: 0;
+    background: var(--surface); border-radius: 24px; overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .h-card .thumb {
+    height: 200px; position: relative;
+    background: linear-gradient(135deg, #67e8f9, #0284c7 55%, #0c4a6e);
+  }
+  .h-card .thumb.t2 { background: linear-gradient(135deg, #a5f3fc, #0369a1 55%, #0c4a6e); }
+  .h-card .thumb::after {
+    content: ""; position: absolute; left: 12%; right: 12%; top: 28%; bottom: 22%;
+    background: linear-gradient(180deg, #ecfeff, #38bdf8);
+    border-radius: 10px; box-shadow: inset 0 0 24px rgba(255,255,255,0.45);
+  }
+  .h-card .body { padding: 18px 20px 22px; }
+  .h-card .body .t { font-size: 28px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+  .h-card .body .m { font-size: 22px; color: var(--text-muted); line-height: 1.35; }
+  .trend { display: flex; flex-direction: column; gap: 0; }
+  .trend-row {
+    display: grid; grid-template-columns: 56px 1fr; gap: 8px;
+    padding: 18px 0; border-bottom: 1px solid var(--hairline);
+    align-items: start;
+  }
+  .trend-row:last-child { border-bottom: 0; }
+  .trend-n { font-size: 32px; font-weight: 800; color: var(--text-muted); padding-top: 2px; }
+  .trend-k { font-size: 30px; font-weight: 700; color: var(--text); }
+  .trend-s { font-size: 24px; color: var(--text-muted); margin-top: 4px; }
+  .fab { bottom: 180px; }
+</style>
+</head>
+<body>
+<div class="phone theme-light">
+  <div class="status"><span>23:15</span><div class="right">▮▮▮ ▮ 5G ▮▮ 82%</div></div>
+  <div class="appbar">
+    <div class="brand-lockup">
+      <img class="mark" src="../logo/mark.png" alt="NadaAqui mark"/>
+      <div class="title">NadaAqui</div>
+    </div>
+  </div>
+  <div class="search">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    Buscar piscinas, bairro ou #tag…
+  </div>
+  <div class="content home-scroll">
+    <section class="feat" aria-label="Piscinas próximas">
+      <div class="feat-head">
+        <div class="sec-ic"><svg viewBox="0 0 24 24"><path d="M4 14c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/><path d="M4 19c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/><path d="M7 8c1.2-2 2.8-2 4 0s2.8 2 4 0"/></svg></div>
+        <div class="sec-title">Piscinas próximas</div>
+        <div class="carousel-ctrls">
+          <div class="arr" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></div>
+          <div class="dots"><i></i><i class="on"></i><i></i></div>
+          <div class="arr" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></div>
+        </div>
+      </div>
+      <div class="pool-name">Municipal Vila Mariana</div>
+      <div class="pool-sub">
+        <span class="chip-dist gray">450 m</span>
+        <span>· Olímpica</span>
+      </div>
+      <div class="presence pouca">
+        <span class="dot"></span>
+        Pouca gente <span class="count">· 12 na água</span>
+      </div>
+      <div class="tag-row">
+        <span class="badge accent">Coberta</span>
+        <span class="badge accent">Aquecida</span>
+        <span class="badge">Grátis</span>
+        <span class="badge accent">Total Pass</span>
+      </div>
+      <div class="feat-foot"><span class="mini"></span> 8 relatos · 14 comentários</div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <h3>Perto de você</h3>
+        <a href="#">ver todas</a>
+      </div>
+      <div class="h-cards">
+        <article class="h-card">
+          <div class="thumb"></div>
+          <div class="body">
+            <div class="t">Lagoa Azul</div>
+            <div class="m">1,8 km · Recreativa<br/>Vazio · 2 na água · Grátis</div>
+          </div>
+        </article>
+        <article class="h-card">
+          <div class="thumb t2"></div>
+          <div class="body">
+            <div class="t">Clube Aquático</div>
+            <div class="m">2,4 km · Semi-olímpica<br/>Cheio · 48 · Total Pass</div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head"><h3>Em alta</h3></div>
+      <div class="trend">
+        <div class="trend-row"><div class="trend-n">1</div><div><div class="trend-k">vila mariana</div><div class="trend-s">28 check-ins recentes</div></div></div>
+        <div class="trend-row"><div class="trend-n">2</div><div><div class="trend-k">água quente</div><div class="trend-s">19 posts recentes</div></div></div>
+        <div class="trend-row"><div class="trend-n">3</div><div><div class="trend-k">total pass</div><div class="trend-s">15 menções recentes</div></div></div>
+      </div>
+    </section>
+  </div>
+  <button class="fab" aria-label="Novo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+  <nav class="nav">
+    <div class="nav-item active"><svg viewBox="0 0 24 24"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>Mapa</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Feed</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.5-7-10a7 7 0 0114 0c0 5.5-7 10-7 10z"/><circle cx="12" cy="11" r="2.5"/></svg>Check-in</div>
+    <div class="nav-item"><span class="nav-badge">9+</span><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 0112 0c0 7 3 7 3 7H3s3 0 3-7"/><path d="M10 19a2 2 0 004 0"/></svg>Notificações</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>Perfil</div>
+  </nav>
+</div>
+</body>
+</html>

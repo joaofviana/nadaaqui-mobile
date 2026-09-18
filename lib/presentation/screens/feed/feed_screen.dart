@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/app_colors.dart';
+import '../../widgets/brand_wordmark.dart';
 import '../../widgets/guest_gate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,8 +11,13 @@ class FeedScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = NadaTokens.of(context);
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: t.bg,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => ensureLoggedIn(context, ref),
+        child: const Icon(Icons.add),
+      ),
       body: Column(
         children: [
           SafeArea(
@@ -20,26 +26,11 @@ class FeedScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
               child: Row(
                 children: [
-                  const Expanded(
-                    child: Text(
-                      'NadaAqui',
-                      style: TextStyle(
-                        color: AppColors.teal,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.4,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Novo post',
-                    onPressed: () => ensureLoggedIn(context, ref),
-                    icon: const Icon(Icons.add, color: AppColors.text),
-                  ),
+                  const Expanded(child: BrandWordmark(height: 28)),
                   IconButton(
                     tooltip: 'Buscar',
                     onPressed: () {},
-                    icon: const Icon(Icons.search, color: AppColors.text),
+                    icon: Icon(Icons.search, color: t.text),
                   ),
                 ],
               ),

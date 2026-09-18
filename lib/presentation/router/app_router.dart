@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../screens/checkin/checkin_tab_screen.dart';
 import '../screens/config/config_screen.dart';
 import '../screens/feed/feed_screen.dart';
+import '../screens/home/home_screen.dart';
+import '../screens/notifications/notifications_screen.dart';
 import '../screens/places/place_detail_screen.dart';
 import '../screens/places/places_screen.dart';
 import '../screens/profile/profile_screen.dart';
@@ -13,6 +15,7 @@ final GlobalKey<NavigatorState> _rootKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _mapaKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _feedKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _checkinKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> _notifKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _perfilKey = GlobalKey<NavigatorState>();
 
 GoRouter createAppRouter() {
@@ -30,8 +33,12 @@ GoRouter createAppRouter() {
             routes: [
               GoRoute(
                 path: '/mapa',
-                builder: (context, state) => const PlacesScreen(),
+                builder: (context, state) => const HomeScreen(),
                 routes: [
+                  GoRoute(
+                    path: 'explorar',
+                    builder: (context, state) => const PlacesScreen(),
+                  ),
                   GoRoute(
                     path: 'place/:placeId',
                     builder: (context, state) {
@@ -62,6 +69,15 @@ GoRouter createAppRouter() {
             ],
           ),
           StatefulShellBranch(
+            navigatorKey: _notifKey,
+            routes: [
+              GoRoute(
+                path: '/notificacoes',
+                builder: (context, state) => const NotificationsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
             navigatorKey: _perfilKey,
             routes: [
               GoRoute(
@@ -78,7 +94,6 @@ GoRouter createAppRouter() {
           ),
         ],
       ),
-      // Rota direta de debug para Config (fora das tabs, útil em smoke).
       GoRoute(
         path: '/debug/config',
         builder: (context, state) => const ConfigScreen(),

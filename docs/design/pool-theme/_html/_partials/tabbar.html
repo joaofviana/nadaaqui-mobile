@@ -1,0 +1,11 @@
+<!-- LOCKED 5-tab bar (Mapa | Feed | Check-in | Notificações 9+ | Perfil)
+     Copy into screens with main chrome. Set class="nav-item active" on the current tab.
+     Auth screens (login/cadastro) omit this nav.
+     Styles live in tokens.css (.nav / .nav-item / .nav-badge). -->
+<nav class="nav">
+  <div class="nav-item"><!-- active on mapa / home / ficha --><svg viewBox="0 0 24 24"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>Mapa</div>
+  <div class="nav-item"><!-- active on feed --><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Feed</div>
+  <div class="nav-item"><!-- active on check-in --><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.5-7-10a7 7 0 0114 0c0 5.5-7 10-7 10z"/><circle cx="12" cy="11" r="2.5"/></svg>Check-in</div>
+  <div class="nav-item"><span class="nav-badge">9+</span><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 0112 0c0 7 3 7 3 7H3s3 0 3-7"/><path d="M10 19a2 2 0 004 0"/></svg>Notificações</div>
+  <div class="nav-item"><!-- active on perfil --><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>Perfil</div>
+</nav>

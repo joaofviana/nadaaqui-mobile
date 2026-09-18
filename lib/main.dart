@@ -24,7 +24,9 @@ class _NadaAquiAppState extends State<NadaAquiApp> {
     return MaterialApp.router(
       title: 'NadaAqui',
       debugShowCheckedModeBanner: false,
-      theme: buildNadaAquiTheme(),
+      themeMode: ThemeMode.dark, // OLED default (TOKENS)
+      theme: buildNadaAquiLightTheme(),
+      darkTheme: buildNadaAquiDarkTheme(),
       routerConfig: _router,
     );
   }

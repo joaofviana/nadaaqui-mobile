@@ -13,9 +13,10 @@ bool isGuest(WidgetRef ref) => ref.watch(sessionStoreProvider) == null;
 Future<bool> ensureLoggedIn(BuildContext context, WidgetRef ref) async {
   if (ref.read(sessionStoreProvider.notifier).isAuthenticated) return true;
 
+  final tokens = NadaTokens.of(context);
   final ok = await showModalBottomSheet<bool>(
     context: context,
-    backgroundColor: AppColors.bg,
+    backgroundColor: tokens.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
@@ -32,25 +33,25 @@ Future<bool> ensureLoggedIn(BuildContext context, WidgetRef ref) async {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.border,
+                    color: tokens.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'Faça login para continuar',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.text,
+                  color: tokens.text,
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Check-in e ações sociais pedem uma conta. '
                 'Mapa e ficha continuam livres para visitantes.',
-                style: TextStyle(color: AppColors.muted, height: 1.4),
+                style: TextStyle(color: tokens.textMuted, height: 1.4),
               ),
               const SizedBox(height: 20),
               FilledButton(
@@ -75,9 +76,9 @@ Future<bool> ensureLoggedIn(BuildContext context, WidgetRef ref) async {
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text(
+                child: Text(
                   'Agora não',
-                  style: TextStyle(color: AppColors.muted),
+                  style: TextStyle(color: tokens.textMuted),
                 ),
               ),
             ],

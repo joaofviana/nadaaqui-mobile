@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<link rel="stylesheet" href="tokens.css"/>
+<style>
+  .map-area {
+    position: absolute; inset: 0 0 280px 0;
+    background:
+      linear-gradient(var(--map-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--map-grid) 1px, transparent 1px),
+      var(--map-bg);
+    background-size: 80px 80px, 80px 80px, auto;
+  }
+  .map-area::before {
+    content: "";
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 140px 50px at 28% 38%, #0e3a3a 0%, transparent 70%),
+      radial-gradient(ellipse 200px 60px at 72% 55%, #0a2a3a 0%, transparent 70%),
+      linear-gradient(105deg, transparent 48%, var(--map-road) 48.5%, var(--map-road) 51.5%, transparent 52%),
+      linear-gradient(20deg, transparent 60%, var(--map-road) 60.5%, var(--map-road) 62%, transparent 62.5%);
+    opacity: 0.95;
+  }
+  .label { position: absolute; font-size: 22px; color: var(--map-label); font-weight: 500; }
+  .pin {
+    position: absolute; width: 56px; height: 56px;
+    background: var(--pin);
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    box-shadow: 0 4px 16px rgba(45,212,191,0.4);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pin::after {
+    content: ""; width: 18px; height: 12px;
+    border: 2.5px solid #fff; border-radius: 2px 2px 0 0;
+    transform: rotate(45deg); margin-top: -2px;
+  }
+  .pin.sel { width: 68px; height: 68px; outline: 4px solid #fff; }
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 148px;
+    background: var(--surface);
+    border-radius: 28px 28px 0 0;
+    padding: 20px 40px 28px;
+  }
+  .sheet .handle {
+    width: 64px; height: 6px; background: var(--sheet-handle);
+    border-radius: 3px; margin: 0 auto 20px;
+  }
+  .sheet h2 { font-size: 34px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 14px; color: var(--text); }
+  .meta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 26px; color: var(--text-muted); }
+  .meta .stars { color: var(--text); }
+  .meta .stars span { color: var(--star); }
+</style>
+</head>
+<body>
+<div class="phone theme-dark">
+  <div class="status"><span>23:15</span><div class="right">▮▮▮ ▮ 5G ▮▮ 82%</div></div>
+  <div class="appbar">
+    <div class="brand">
+      <svg class="logo-mark" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="30" fill="#2DD4BF"/><path d="M12 36c4-6 8-6 12 0s8 6 12 0 8-6 12 0" fill="none" stroke="#000" stroke-width="3.5" stroke-linecap="round"/><path d="M16 44c3.5-5 7-5 10.5 0s7 5 10.5 0 7-5 10.5 0" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" opacity=".7"/><path d="M28 18c0 0 2-6 8-4 4 1.5 4 6 2 8-3 3-8 2-10-4z" fill="#000" opacity=".9"/></svg>
+      <div class="title">NadaAqui</div>
+    </div>
+    <button class="icon" aria-label="Buscar">
+      <svg width="40" height="40" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    </button>
+  </div>
+  <div class="chip-row">
+    <div class="chip active">Todos</div>
+    <div class="chip">Grátis</div>
+    <div class="chip">Pago</div>
+    <div class="chip">Total Pass</div>
+  </div>
+  <div class="content">
+    <div class="map-area">
+      <span class="label" style="top:18%;left:12%">Vila Mariana</span>
+      <span class="label" style="top:42%;left:58%">Paraíso</span>
+      <span class="label" style="top:68%;left:22%">Saúde</span>
+      <div class="pin" style="top:22%;left:28%"></div>
+      <div class="pin sel" style="top:38%;left:48%"></div>
+      <div class="pin" style="top:52%;left:22%"></div>
+      <div class="pin" style="top:58%;left:68%"></div>
+      <div class="pin" style="top:72%;left:42%"></div>
+    </div>
+    <div class="sheet">
+      <div class="handle"></div>
+      <h2>Piscina Municipal Vila Mariana</h2>
+      <div class="meta">
+        <span class="chip-dist gray">450 m</span>
+        <span class="badge">Grátis</span>
+        <span class="badge accent">Total Pass</span>
+        <span class="stars"><span>★</span> 4,6</span>
+      </div>
+    </div>
+  </div>
+  <nav class="nav">
+    <div class="nav-item active"><svg viewBox="0 0 24 24"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>Mapa</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Feed</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.5-7-10a7 7 0 0114 0c0 5.5-7 10-7 10z"/><circle cx="12" cy="11" r="2.5"/></svg>Check-in</div>
+    <div class="nav-item"><span class="nav-badge">9+</span><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 0112 0c0 7 3 7 3 7H3s3 0 3-7"/><path d="M10 19a2 2 0 004 0"/></svg>Notificações</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>Perfil</div>
+  </nav>
+</div>
+</body>
+</html>

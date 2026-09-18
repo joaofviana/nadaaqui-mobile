@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/location/location_controller.dart';
-import '../../../core/location/location_state.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/session/session_store.dart';
 import '../../../data/models/place.dart';
@@ -14,6 +13,7 @@ import '../../theme/app_colors.dart';
 import '../../widgets/distance_chip.dart';
 import '../../widgets/gps_denied_banner.dart';
 import '../../widgets/guest_gate.dart';
+import '../../widgets/brand_wordmark.dart';
 import '../../widgets/place_badges.dart';
 
 enum PlacesFilter { all, free, paid, totalPass }
@@ -102,17 +102,7 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
               padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
               child: Row(
                 children: [
-                  const Expanded(
-                    child: Text(
-                      'NadaAqui',
-                      style: TextStyle(
-                        color: AppColors.teal,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.4,
-                      ),
-                    ),
-                  ),
+                  const Expanded(child: BrandWordmark(height: 28)),
                   IconButton(
                     tooltip: 'Buscar',
                     onPressed: () {},
@@ -276,13 +266,14 @@ class _FilterPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = NadaTokens.of(context);
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: Material(
-        color: selected ? AppColors.teal : AppColors.bg,
+        color: selected ? t.chipActiveBg : t.chipInactiveBg,
         shape: StadiumBorder(
           side: BorderSide(
-            color: selected ? AppColors.teal : AppColors.border,
+            color: selected ? t.chipActiveBg : t.border,
           ),
         ),
         child: InkWell(
@@ -293,7 +284,7 @@ class _FilterPill extends StatelessWidget {
             child: Text(
               label,
               style: TextStyle(
-                color: selected ? Colors.white : AppColors.text,
+                color: selected ? t.chipActiveFg : t.chipInactiveFg,
                 fontWeight: FontWeight.w500,
                 fontSize: 13,
               ),
@@ -326,8 +317,9 @@ class _MapPlaceholder extends StatelessWidget {
       QaGps.placeInId: const Alignment(-0.1, -0.15),
       QaGps.placeOutId: const Alignment(0.35, 0.25),
     };
+    final t = NadaTokens.of(context);
     return Container(
-      color: const Color(0xFFF5F8FA),
+      color: t.mapBg,
       child: CustomPaint(
         painter: _GridPainter(),
         child: Stack(
@@ -428,17 +420,18 @@ class _MapPin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = NadaTokens.of(context);
     final size = selected ? 44.0 : 36.0;
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: AppColors.teal,
+        color: t.pin,
         shape: BoxShape.circle,
         border: selected ? Border.all(color: Colors.white, width: 3) : null,
         boxShadow: [
           BoxShadow(
-            color: AppColors.teal.withOpacity(0.35),
+            color: t.pin.withOpacity(0.35),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -453,7 +446,7 @@ class _GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFFE8EEF1)
+      ..color = const Color(0xFF1C1C1E)
       ..strokeWidth = 1;
     const step = 40.0;
     for (double x = 0; x < size.width; x += step) {
@@ -488,13 +481,14 @@ class _PlaceBottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dist = place.distanceMeters;
+    final t = NadaTokens.of(context);
     return Material(
-      color: AppColors.bg,
+      color: t.surface,
       child: InkWell(
         onTap: onOpen,
         child: Container(
-          decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: AppColors.hairline)),
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: t.hairline)),
           ),
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
           child: Column(
@@ -546,8 +540,8 @@ class _PlaceBottomSheet extends StatelessWidget {
                   child: OutlinedButton(
                     onPressed: onGuestCheckIn,
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.teal,
-                      side: const BorderSide(color: AppColors.teal, width: 2),
+                      foregroundColor: NadaTokens.of(context).accent,
+                      side: BorderSide(color: NadaTokens.of(context).accent, width: 2),
                       shape: const StadiumBorder(),
                       minimumSize: const Size.fromHeight(44),
                       textStyle: const TextStyle(
