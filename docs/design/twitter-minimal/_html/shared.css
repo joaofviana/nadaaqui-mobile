@@ -1,0 +1,128 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --teal: #0D9488;
+  --teal-soft: #CCFBF1;
+  --text: #0F1419;
+  --muted: #536471;
+  --hairline: #EFF3F4;
+  --border: #CFD9DE;
+  --bg: #FFFFFF;
+  --icon: #0F1419;
+}
+html, body {
+  width: 1080px;
+  height: 1920px;
+  overflow: hidden;
+  background: #111;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.phone {
+  width: 1080px;
+  height: 1920px;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.status {
+  height: 72px;
+  padding: 24px 48px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text);
+  flex-shrink: 0;
+}
+.status .right { display: flex; gap: 16px; align-items: center; font-size: 26px; }
+.appbar {
+  height: 96px;
+  padding: 0 40px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-shrink: 0;
+}
+.appbar .title {
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--teal);
+  flex: 1;
+}
+.appbar .icon {
+  width: 72px; height: 72px;
+  border: 0; background: transparent;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  min-height: 0;
+}
+.nav {
+  height: 148px;
+  border-top: 1px solid var(--hairline);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: #fff;
+  flex-shrink: 0;
+  padding-bottom: 24px;
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 22px;
+  font-weight: 500;
+}
+.nav-item.active { color: var(--teal); font-weight: 600; }
+.nav-item svg { width: 44px; height: 44px; stroke: currentColor; fill: none; stroke-width: 2; }
+.chip-row {
+  display: flex;
+  gap: 16px;
+  padding: 8px 40px 20px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.chip {
+  padding: 14px 28px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--text);
+  background: #fff;
+  white-space: nowrap;
+}
+.chip.active {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+}
+.hairline { height: 1px; background: var(--hairline); width: 100%; }
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 22px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.badge.teal {
+  border-color: var(--teal);
+  color: var(--teal);
+  background: transparent;
+}

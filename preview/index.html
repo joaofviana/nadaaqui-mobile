@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NadaAqui — prévia UI</title>
+<style>
+  :root { --primary:#006a60; --surface:#f5fbf8; --on:#191c1b; --muted:#5c6663; --nav:72px; }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; min-height:100vh; font-family: Roboto, system-ui, sans-serif;
+    background:#1a1c1e; color:var(--on);
+    display:flex; flex-direction:column; align-items:center; gap:14px; padding:20px 12px 36px;
+  }
+  h1 { color:#e8eaed; font-size:17px; font-weight:500; margin:0; text-align:center; }
+  .hint { color:#9aa0a6; font-size:12px; text-align:center; max-width:420px; line-height:1.4; margin:0; }
+  .tabs-top { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+  .tabs-top button {
+    border:1px solid #444; background:#2d2f31; color:#e8eaed;
+    border-radius:20px; padding:8px 14px; cursor:pointer; font-size:13px;
+  }
+  .tabs-top button.active { background:var(--primary); border-color:var(--primary); }
+  .phone {
+    width:390px; height:780px; border-radius:36px; border:10px solid #111;
+    box-shadow:0 20px 60px rgba(0,0,0,.5); background:var(--surface);
+    overflow:hidden; display:flex; flex-direction:column; position:relative;
+  }
+  .status {
+    height:28px; display:flex; align-items:center; justify-content:space-between;
+    padding:0 18px; font-size:11px; font-weight:600;
+  }
+  .appbar {
+    height:56px; display:flex; align-items:center; padding:0 8px 0 16px;
+    border-bottom:1px solid #dde4e1; font-size:20px; font-weight:500; gap:8px;
+  }
+  .appbar .spacer { flex:1; }
+  .icon-btn { width:40px; height:40px; border:0; background:transparent; border-radius:20px; cursor:pointer; font-size:18px; }
+  .content { flex:1; overflow:auto; padding-bottom:var(--nav); }
+  .nav {
+    position:absolute; bottom:0; left:0; right:0; height:var(--nav);
+    background:#eef5f2; border-top:1px solid #dde4e1;
+    display:grid; grid-template-columns:repeat(4,1fr);
+  }
+  .nav button {
+    border:0; background:transparent; cursor:pointer; color:#3f4946;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:2px; font-size:12px;
+  }
+  .nav button.active { color:var(--primary); font-weight:600; }
+  .nav .ico { font-size:20px; line-height:1; }
+  .screen { display:none; padding:12px 16px 20px; }
+  .screen.active { display:block; }
+  .muted { color:var(--muted); font-size:13px; }
+  .chips { display:flex; gap:8px; overflow-x:auto; padding:8px 0 12px; }
+  .chip {
+    border:1px solid #6f7976; border-radius:8px; padding:6px 12px;
+    font-size:13px; background:transparent; white-space:nowrap; cursor:pointer;
+  }
+  .chip.sel { background:var(--primary); color:#fff; border-color:var(--primary); }
+  .card {
+    background:#fff; border-radius:12px; padding:14px 16px; margin-bottom:10px;
+    box-shadow:0 1px 2px rgba(0,0,0,.08); cursor:pointer;
+  }
+  .card h3 { margin:0 0 6px; font-size:16px; font-weight:500; }
+  .badge {
+    display:inline-block; font-size:11px; padding:2px 8px; border-radius:6px;
+    background:#d4e6e2; color:var(--primary); margin-right:4px;
+  }
+  .badge.free { background:#e8f5e9; color:#2e7d32; }
+  .badge.paid { background:#fff3e0; color:#ef6c00; }
+  .tile {
+    background:#fff; border-radius:12px; padding:12px 16px; margin-bottom:8px;
+    display:flex; justify-content:space-between; align-items:center;
+    box-shadow:0 1px 2px rgba(0,0,0,.06);
+  }
+  .tile strong { font-size:14px; font-weight:500; }
+  .tile span { font-weight:700; font-size:14px; }
+  .btn {
+    width:100%; border:0; border-radius:20px; padding:14px;
+    background:var(--primary); color:#fff; font-size:15px; font-weight:600; cursor:pointer; margin-top:12px;
+  }
+  .btn.outline {
+    background:transparent; color:var(--primary); border:1px solid var(--primary);
+  }
+  .result {
+    margin-top:12px; padding:12px; border-radius:8px;
+    background:#e8f5e9; font-size:13px; white-space:pre-wrap;
+  }
+  .result.err { background:#fce8e6; color:#ba1a1a; }
+  .slider { width:100%; margin:8px 0 16px; }
+  .stub { text-align:center; padding:48px 24px; color:var(--muted); }
+  .stub h2 { font-size:18px; font-weight:500; color:var(--on); margin:0 0 8px; }
+  hr { border:none; border-top:1px solid #dde4e1; margin:20px 0; }
+</style>
+</head>
+<body>
+  <h1>NadaAqui — prévia das telas Flutter (smoke)</h1>
+  <p class="hint">Espelho do app em /mobile. Flutter SDK ainda não está nesta máquina — isto é a UI de smoke (Mapa, Detalhe/Check-in, Config). Dados do WireMock QA.</p>
+  <div class="tabs-top">
+    <button class="active" data-go="mapa">Mapa / Places</button>
+    <button data-go="detail">Detalhe + Check-in</button>
+    <button data-go="config">Config remota</button>
+    <button data-go="feed">Feed (stub)</button>
+  </div>
+
+  <div class="phone">
+    <div class="status"><span>21:09</span><span>LTE · 100%</span></div>
+    <div class="appbar">
+      <span id="title">Mapa / Places</span>
+      <span class="spacer"></span>
+      <button class="icon-btn" title="Recarregar">↻</button>
+    </div>
+    <div class="content">
+      <div class="screen active" id="mapa">
+        <p class="muted">GPS QA: -23.5505, -46.6333</p>
+        <div class="chips" id="filterChips">
+          <button class="chip sel" data-f="all">Todos</button>
+          <button class="chip" data-f="free">free</button>
+          <button class="chip" data-f="paid">paid</button>
+          <button class="chip" data-f="pass">totalPass=yes</button>
+        </div>
+        <div id="placeList"></div>
+      </div>
+
+      <div class="screen" id="detail">
+        <h2 style="margin:0 0 8px;font-size:22px;font-weight:500" id="dName">Piscina Clube Centro (IN raio)</h2>
+        <p class="muted" id="dMeta">pool · paid · totalPass=yes</p>
+        <p>Rua Exemplo 100, Centro</p>
+        <p class="muted">Piscina olímpica — QA de check-in DENTRO do raio.</p>
+        <p>Preço: Diária ~R$ 40</p>
+        <p class="muted">lat=-23.5509 · lng=-46.6335</p>
+        <hr />
+        <p style="font-weight:500;margin:0 0 4px">Check-in (GPS QA -23.5505, -46.6333)</p>
+        <p class="muted">Raio (GET /config): 150 m · maxAge: 60s</p>
+        <p style="margin-top:12px">accuracyMeters: <span id="accVal">10</span></p>
+        <input class="slider" type="range" min="5" max="100" value="10" id="acc" />
+        <p>X-Mock-Scenario (WireMock)</p>
+        <div class="chips" id="scenarioChips">
+          <button class="chip sel" data-s="">nenhum</button>
+          <button class="chip" data-s="LOCATION_STALE">LOCATION_STALE</button>
+          <button class="chip" data-s="ALREADY_CHECKED_IN">ALREADY_CHECKED_IN</button>
+        </div>
+        <button class="btn" id="checkinBtn">Fazer check-in</button>
+        <div id="checkResult" hidden></div>
+      </div>
+
+      <div class="screen" id="config">
+        <p class="muted">API: http://10.0.2.2:8080/v1</p>
+        <div class="tile"><strong>checkInRadiusMeters</strong><span>150</span></div>
+        <div class="tile"><strong>locationMaxAgeSeconds</strong><span>60</span></div>
+        <div class="tile"><strong>checkInTtlSeconds</strong><span>10800</span></div>
+        <div class="tile"><strong>presencePollSeconds</strong><span>30</span></div>
+        <div class="tile"><strong>citySlug</strong><span>sao-paulo</span></div>
+        <p style="margin-top:16px;font-size:14px">O raio de check-in NÃO é hardcoded — sempre vem deste endpoint.</p>
+      </div>
+
+      <div class="screen" id="feed">
+        <div class="stub"><h2>Feed</h2><p>Stub P2 — ainda sem API neste sprint.</p></div>
+      </div>
+
+      <div class="screen" id="checkinTab">
+        <div class="stub">
+          <h2>Check-in</h2>
+          <p>Abra um local no Mapa para check-in com GPS QA.</p>
+          <button class="btn outline" data-go="mapa">Ir ao Mapa</button>
+        </div>
+      </div>
+
+      <div class="screen" id="perfil">
+        <div class="card" style="cursor:default">
+          <h3>QA Tester</h3>
+          <p class="muted">qa@nadaaqui.app</p>
+        </div>
+        <button class="btn outline" data-go="config">Config remota</button>
+        <p class="muted" style="margin-top:16px">Sessão mock injetada no detalhe para smoke do WireMock.</p>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <button class="active" data-nav="mapa"><span class="ico">🗺️</span>Mapa</button>
+      <button data-nav="feed"><span class="ico">📰</span>Feed</button>
+      <button data-nav="checkinTab"><span class="ico">✅</span>Check-in</button>
+      <button data-nav="perfil"><span class="ico">👤</span>Perfil</button>
+    </nav>
+  </div>
+
+<script>
+const places = [
+  { id:'11111111-1111-1111-1111-111111111111', name:'Piscina Clube Centro (IN raio)', placeType:'pool', priceType:'paid', totalPass:'yes', distanceMeters:80 },
+  { id:'22222222-2222-2222-2222-222222222222', name:'Praia Artificial Parque (OUT raio)', placeType:'beach', priceType:'free', totalPass:'no', distanceMeters:450 },
+];
+let filter = 'all';
+let scenario = '';
+let currentOut = false;
+
+function matches(p) {
+  if (filter === 'all') return true;
+  if (filter === 'free') return p.priceType === 'free';
+  if (filter === 'paid') return p.priceType === 'paid';
+  if (filter === 'pass') return p.totalPass === 'yes';
+  return true;
+}
+function renderList() {
+  const el = document.getElementById('placeList');
+  const items = places.filter(matches);
+  if (!items.length) { el.innerHTML = '<p class="stub">Nenhum local</p>'; return; }
+  el.innerHTML = items.map(p => `
+    <div class="card" onclick="openDetail('${p.id}')">
+      <h3>${p.name}</h3>
+      <div>
+        <span class="badge ${p.priceType}">${p.priceType}</span>
+        <span class="badge">totalPass=${p.totalPass}</span>
+        <span class="muted"> · ${p.distanceMeters} m</span>
+      </div>
+    </div>`).join('');
+}
+function openDetail(id) {
+  const p = places.find(x => x.id === id);
+  if (!p) return;
+  currentOut = p.name.includes('OUT');
+  document.getElementById('dName').textContent = p.name;
+  document.getElementById('dMeta').textContent = `${p.placeType} · ${p.priceType} · totalPass=${p.totalPass}`;
+  document.getElementById('checkResult').hidden = true;
+  show('detail');
+}
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const titles = { mapa:'Mapa / Places', detail:'Detalhe', config:'Config remota', feed:'Feed', checkinTab:'Check-in', perfil:'Perfil' };
+  document.getElementById('title').textContent = titles[id] || id;
+  document.querySelectorAll('.nav button').forEach(b => {
+    const on = b.dataset.nav === id || (id==='detail' && b.dataset.nav==='mapa') || (id==='config' && b.dataset.nav==='perfil');
+    b.classList.toggle('active', on);
+  });
+  document.querySelectorAll('.tabs-top button').forEach(b => {
+    b.classList.toggle('active', b.dataset.go === id || (id==='mapa' && b.dataset.go==='mapa'));
+  });
+}
+document.getElementById('filterChips').addEventListener('click', (e) => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  filter = b.dataset.f;
+  [...e.currentTarget.children].forEach(c => c.classList.toggle('sel', c === b));
+  renderList();
+});
+document.getElementById('scenarioChips').addEventListener('click', (e) => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  scenario = b.dataset.s;
+  [...e.currentTarget.children].forEach(c => c.classList.toggle('sel', c === b));
+});
+document.getElementById('acc').addEventListener('input', (e) => {
+  document.getElementById('accVal').textContent = e.target.value;
+});
+document.getElementById('checkinBtn').addEventListener('click', () => {
+  const box = document.getElementById('checkResult');
+  box.hidden = false;
+  if (scenario === 'LOCATION_STALE') {
+    box.className = 'result err';
+    box.textContent = 'LOCATION_STALE: Localização velha demais\n{maxAgeSeconds: 60}';
+  } else if (scenario === 'ALREADY_CHECKED_IN') {
+    box.className = 'result err';
+    box.textContent = 'ALREADY_CHECKED_IN: Já existe check-in ativo';
+  } else if (currentOut) {
+    box.className = 'result err';
+    box.textContent = 'OUT_OF_RANGE: Fora do raio de check-in\n{distanceMeters: 450, radiusMeters: 150}';
+  } else {
+    box.className = 'result';
+    box.textContent = 'OK (active) · dist=80m\nRaio remoto: 150m · id=checkin-ok-001';
+  }
+});
+document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => show(b.dataset.go)));
+document.querySelectorAll('.nav button').forEach(b => b.addEventListener('click', () => show(b.dataset.nav)));
+renderList();
+</script>
+</body>
+</html>

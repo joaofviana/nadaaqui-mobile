@@ -1,0 +1,30 @@
+name: nadaaqui
+description: NadaAqui MVP — Places, Check-in e Config.
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.5.1
+  dio: ^5.7.0
+  go_router: ^14.2.0
+  json_annotation: ^4.9.0
+  equatable: ^2.0.5
+  cupertino_icons: ^1.0.8
+  geolocator: ^13.0.2
+  permission_handler: ^11.3.1
+  app_settings: ^5.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  json_serializable: ^6.8.0
+  build_runner: ^2.4.11
+
+flutter:
+  uses-material-design: true
