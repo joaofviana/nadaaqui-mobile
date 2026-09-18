@@ -2,13 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 
-/// Cor semântica da distância vs raio de check-in (GET /config).
-///
-/// Tokens UX (não usar teal):
-/// - verde `#16A34A` se ≤ checkInRadiusMeters (default remoto 150)
-/// - âmbar `#D97706` se ≤ 2×raio
-/// - cinza `#6B7280` se > 2×
-/// Sem GPS / sem metros: texto muted “distância indisponível”.
+/// Distância semântica vs raio (TOKENS: green ≤150 · amber ≤300 · gray >300
+/// when radius=150; general: ≤radius / ≤2× / >2×).
 enum DistanceBand { inRange, near, far }
 
 DistanceBand distanceBand({
@@ -18,36 +13,6 @@ DistanceBand distanceBand({
   if (distanceMeters <= checkInRadiusMeters) return DistanceBand.inRange;
   if (distanceMeters <= checkInRadiusMeters * 2) return DistanceBand.near;
   return DistanceBand.far;
-}
-
-class _BandStyle {
-  const _BandStyle(this.fg, this.bg, this.border);
-  final Color fg;
-  final Color bg;
-  final Color border;
-}
-
-_BandStyle _styleFor(DistanceBand band) {
-  switch (band) {
-    case DistanceBand.inRange:
-      return const _BandStyle(
-        AppColors.distGreen,
-        AppColors.distGreenBg,
-        AppColors.distGreenBorder,
-      );
-    case DistanceBand.near:
-      return const _BandStyle(
-        AppColors.distAmber,
-        AppColors.distAmberBg,
-        AppColors.distAmberBorder,
-      );
-    case DistanceBand.far:
-      return const _BandStyle(
-        AppColors.distGray,
-        AppColors.distGrayBg,
-        AppColors.distGrayBorder,
-      );
-  }
 }
 
 String formatDistanceMeters(int meters) {
@@ -70,19 +35,25 @@ class DistanceChip extends StatelessWidget {
         checkInRadiusMeters = null,
         unavailable = true;
 
-  final int? distanceMeters;
+  /// Mock/home: metros conhecidos + raio de referência (ex. 150).
+  const DistanceChip.fixedMeters({
+    super.key,
+    required this.distanceMeters,
+    required this.checkInRadiusMeters,
+  }) : unavailable = false;
 
-  /// Raio remoto (RemoteConfig.checkInRadiusMeters). Não hardcodar no caller.
+  final int? distanceMeters;
   final int? checkInRadiusMeters;
   final bool unavailable;
 
   @override
   Widget build(BuildContext context) {
+    final t = NadaTokens.of(context);
     if (unavailable || distanceMeters == null || checkInRadiusMeters == null) {
-      return const Text(
+      return Text(
         'distância indisponível',
         style: TextStyle(
-          color: AppColors.muted,
+          color: t.textMuted,
           fontWeight: FontWeight.w500,
           fontSize: 13,
         ),
@@ -93,20 +64,24 @@ class DistanceChip extends StatelessWidget {
       distanceMeters: distanceMeters!,
       checkInRadiusMeters: checkInRadiusMeters!,
     );
-    final s = _styleFor(band);
+    final (fg, bg, bd) = switch (band) {
+      DistanceBand.inRange => (t.distGreenFg, t.distGreenBg, t.distGreenBd),
+      DistanceBand.near => (t.distAmberFg, t.distAmberBg, t.distAmberBd),
+      DistanceBand.far => (t.distGrayFg, t.distGrayBg, t.distGrayBd),
+    };
     final label = formatDistanceMeters(distanceMeters!);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: s.bg,
+        color: bg,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: s.border),
+        border: Border.all(color: bd),
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: s.fg,
+          color: fg,
           fontWeight: FontWeight.w700,
           fontSize: 13,
           letterSpacing: -0.2,

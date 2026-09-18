@@ -3,11 +3,14 @@ import 'package:go_router/go_router.dart';
 
 import '../theme/app_colors.dart';
 
-/// Bottom nav idêntica: Mapa | Feed | Check-in | Perfil (ativo #0D9488).
+/// Bottom nav 5: Mapa | Feed | Check-in | Notificações | Perfil (HOME-IA).
 class MainShell extends StatelessWidget {
   const MainShell({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
+
+  /// Stub badge overflow (HOME-IA mock).
+  static const notificationBadgeLabel = '9+';
 
   void _onTap(int index) {
     navigationShell.goBranch(
@@ -18,13 +21,14 @@ class MainShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = NadaTokens.of(context);
     final idx = navigationShell.currentIndex;
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: AppColors.bg,
-          border: Border(top: BorderSide(color: AppColors.hairline)),
+        decoration: BoxDecoration(
+          color: t.navBg,
+          border: Border(top: BorderSide(color: t.hairline)),
         ),
         child: SafeArea(
           top: false,
@@ -54,11 +58,19 @@ class MainShell extends StatelessWidget {
                   onTap: () => _onTap(2),
                 ),
                 _NavItem(
+                  icon: Icons.notifications_outlined,
+                  selectedIcon: Icons.notifications,
+                  label: 'Notificações',
+                  selected: idx == 3,
+                  badge: notificationBadgeLabel,
+                  onTap: () => _onTap(3),
+                ),
+                _NavItem(
                   icon: Icons.person_outline,
                   selectedIcon: Icons.person,
                   label: 'Perfil',
-                  selected: idx == 3,
-                  onTap: () => _onTap(3),
+                  selected: idx == 4,
+                  onTap: () => _onTap(4),
                 ),
               ],
             ),
@@ -76,6 +88,7 @@ class _NavItem extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
+    this.badge,
   });
 
   final IconData icon;
@@ -83,23 +96,57 @@ class _NavItem extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
+  final String? badge;
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.teal : AppColors.muted;
+    final t = NadaTokens.of(context);
+    final color = selected ? t.navActive : t.navInactive;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Expanded(
       child: InkWell(
         onTap: onTap,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(selected ? selectedIcon : icon, color: color, size: 26),
-            const SizedBox(height: 4),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(selected ? selectedIcon : icon, color: color, size: 24),
+                if (badge != null)
+                  Positioned(
+                    top: -6,
+                    right: -14,
+                    child: Container(
+                      constraints: const BoxConstraints(minWidth: 22),
+                      height: 16,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white : t.accent,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        badge!,
+                        style: TextStyle(
+                          color: isDark ? Colors.black : Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          height: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 3),
             Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: color,
-                fontSize: 12,
+                fontSize: 10,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
               ),
             ),

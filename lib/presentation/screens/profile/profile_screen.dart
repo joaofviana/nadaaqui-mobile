@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/session/session_store.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/brand_wordmark.dart';
 import '../../widgets/guest_gate.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -14,21 +15,14 @@ class ProfileScreen extends ConsumerWidget {
     final session = ref.watch(sessionStoreProvider);
     final user = session?.user;
 
+    final t = NadaTokens.of(context);
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: t.bg,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           children: [
-            const Text(
-              'NadaAqui',
-              style: TextStyle(
-                color: AppColors.teal,
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.4,
-              ),
-            ),
+            const BrandWordmark(height: 28),
             const SizedBox(height: 24),
             if (user != null) ...[
               Text(

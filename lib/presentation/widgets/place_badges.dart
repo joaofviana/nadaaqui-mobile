@@ -7,20 +7,21 @@ class PlaceBadge extends StatelessWidget {
   const PlaceBadge({
     super.key,
     required this.label,
-    this.teal = false,
+    this.accent = false,
   });
 
   final String label;
-  final bool teal;
+  final bool accent;
 
   @override
   Widget build(BuildContext context) {
-    final color = teal ? AppColors.teal : AppColors.muted;
+    final t = NadaTokens.of(context);
+    final color = accent ? t.accent : t.badgeFg;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: teal ? AppColors.teal : AppColors.border),
+        border: Border.all(color: accent ? t.accent : t.badgeBd),
       ),
       child: Text(
         label,
@@ -51,7 +52,7 @@ List<Widget> placePills(Place place) {
     out.add(PlaceBadge(label: priceTypeLabel(place.priceType)));
   }
   if (place.totalPass == TotalPass.yes) {
-    out.add(const PlaceBadge(label: 'Total Pass', teal: true));
+    out.add(const PlaceBadge(label: 'Total Pass', accent: true));
   }
   return out;
 }

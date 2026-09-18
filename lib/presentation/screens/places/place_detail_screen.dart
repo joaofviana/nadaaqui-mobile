@@ -125,7 +125,7 @@ class _PlaceDetailScreenState extends ConsumerState<PlaceDetailScreen> {
     const defaultRadiusFallback = 150;
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: NadaTokens.of(context).bg,
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text(extractApiError(e).message)),
@@ -205,9 +205,9 @@ class _PlaceDetailScreenState extends ConsumerState<PlaceDetailScreen> {
                                     }
                                   },
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.teal,
-                              side: const BorderSide(
-                                  color: AppColors.teal, width: 2),
+                              foregroundColor: NadaTokens.of(context).accent,
+                              side: BorderSide(
+                                  color: NadaTokens.of(context).accent, width: 2),
                               shape: const StadiumBorder(),
                               minimumSize: const Size.fromHeight(48),
                               textStyle: const TextStyle(

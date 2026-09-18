@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<link rel="stylesheet" href="tokens.css"/>
+<style>
+  .hero {
+    height: 420px;
+    background: linear-gradient(135deg, #134e4a 0%, #0f766e 40%, #042f2e 100%);
+    position: relative; flex-shrink: 0;
+  }
+  .hero-pool {
+    position: absolute; left: 8%; right: 8%; top: 28%; bottom: 18%;
+    background: linear-gradient(180deg, #67e8f9 0%, #0891b2 60%, #0e7490 100%);
+    border-radius: 12px;
+    box-shadow: inset 0 0 40px rgba(255,255,255,0.25);
+  }
+  .hero-pool::after {
+    content: ""; position: absolute; left: 10%; right: 10%; top: 20%; height: 40%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+    border-radius: 50%;
+  }
+  .hero-btns {
+    position: absolute; top: 24px; left: 32px; right: 32px;
+    display: flex; justify-content: space-between;
+  }
+  .hero-btns button {
+    width: 72px; height: 72px; border-radius: 50%;
+    border: 0; background: var(--hero-btn-bg); color: var(--hero-btn-fg);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .hero-btns svg { stroke: currentColor; fill: none; stroke-width: 2.2; }
+  .body { padding: 32px 40px 24px; flex: 1; overflow: hidden; }
+  .body h1 { font-size: 40px; font-weight: 800; letter-spacing: -0.6px; margin-bottom: 14px; line-height: 1.15; }
+  .row-meta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 28px; font-size: 26px; color: var(--text-muted); }
+  .cta {
+    width: 100%; height: 96px; background: var(--cta-strong-bg); color: var(--cta-strong-fg);
+    border: 0; border-radius: 999px; font-size: 32px; font-weight: 700; margin-bottom: 36px;
+  }
+  .who { display: flex; align-items: center; gap: 20px; padding: 8px 0 28px; }
+  .avatars { display: flex; }
+  .av {
+    width: 56px; height: 56px; border-radius: 50%;
+    border: 3px solid var(--avatar-border); margin-left: -14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 700;
+  }
+  .av:first-child { margin-left: 0; }
+  .av.a { background: #134e4a; color: #5eead4; }
+  .av.b { background: #0c4a6e; color: #7dd3fc; }
+  .av.c { background: #422006; color: #fbbf24; }
+  .av.d { background: #3b0764; color: #d8b4fe; }
+  .who-text { font-size: 26px; color: var(--text-muted); }
+  .who-text strong { color: var(--text); font-weight: 700; }
+  .list-item {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 28px 0; border-top: 1px solid var(--hairline); font-size: 28px;
+  }
+  .list-item .label { color: var(--text-muted); font-weight: 500; }
+  .list-item .value { color: var(--text); font-weight: 600; text-align: right; }
+  .list-item .value small { display: block; font-size: 22px; font-weight: 400; color: var(--text-muted); margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="phone theme-dark">
+  <div class="status"><span>23:15</span><div class="right">▮▮▮ ▮ 5G ▮▮ 82%</div></div>
+  <div class="hero">
+    <div class="hero-pool"></div>
+    <div class="hero-btns">
+      <button aria-label="Voltar"><svg width="36" height="36" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <button aria-label="Compartilhar"><svg width="32" height="32" viewBox="0 0 24 24"><path d="M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7"/><path d="M12 3v12M8 7l4-4 4 4"/></svg></button>
+    </div>
+  </div>
+  <div class="body">
+    <h1>Clube Aquático Centro</h1>
+    <div class="row-meta">
+      <span class="chip-dist green">120 m</span>
+      <span class="badge">Pago</span>
+      <span class="badge accent">Total Pass</span>
+      <span>★ 4,3</span>
+    </div>
+    <button class="cta">Fazer check-in</button>
+    <div class="who">
+      <div class="avatars">
+        <div class="av a">A</div><div class="av b">B</div><div class="av c">C</div><div class="av d">D</div>
+      </div>
+      <div class="who-text"><strong>4</strong> pessoas estão aqui</div>
+    </div>
+    <div class="list-item"><span class="label">Horário</span><span class="value">Seg–Dom · 06h–22h</span></div>
+    <div class="list-item"><span class="label">Preço</span><span class="value">R$ 25<small>entrada aproximada</small></span></div>
+    <div class="list-item"><span class="label">Avaliação</span><span class="value">4,3 ★<small>128 avaliações</small></span></div>
+  </div>
+  <nav class="nav">
+    <div class="nav-item active"><svg viewBox="0 0 24 24"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>Mapa</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Feed</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.5-7-10a7 7 0 0114 0c0 5.5-7 10-7 10z"/><circle cx="12" cy="11" r="2.5"/></svg>Check-in</div>
+    <div class="nav-item"><span class="nav-badge">9+</span><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 0112 0c0 7 3 7 3 7H3s3 0 3-7"/><path d="M10 19a2 2 0 004 0"/></svg>Notificações</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>Perfil</div>
+  </nav>
+</div>
+</body>
+</html>

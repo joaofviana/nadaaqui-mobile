@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<link rel="stylesheet" href="tokens.css"/>
+<style>
+  .timeline { padding: 0; }
+  .post {
+    display: grid; grid-template-columns: 88px 1fr; gap: 0 20px;
+    padding: 28px 40px; border-bottom: 1px solid var(--hairline);
+  }
+  .avatar {
+    width: 72px; height: 72px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 700;
+  }
+  .avatar.t1 { background: #134e4a; color: #5eead4; }
+  .avatar.t2 { background: #4a044e; color: #f9a8d4; }
+  .avatar.t3 { background: #0c4a6e; color: #7dd3fc; }
+  .head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; font-size: 26px; }
+  .head .name { font-weight: 700; color: var(--text); }
+  .head .handle, .head .time { color: var(--text-muted); font-weight: 400; }
+  .head .dot { color: var(--text-muted); }
+  .text { font-size: 30px; line-height: 1.4; color: var(--text); margin-bottom: 16px; }
+  .text .loc { color: var(--accent); font-weight: 600; }
+  .media {
+    width: 100%; height: 320px; border-radius: 24px; overflow: hidden;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, #134e4a, #0d9488 50%, #042f2e);
+    position: relative; border: 1px solid var(--border);
+  }
+  .media::after {
+    content: ""; position: absolute; left: 10%; right: 10%; top: 30%; bottom: 20%;
+    background: linear-gradient(180deg, #67e8f9, #0284c7);
+    border-radius: 8px; box-shadow: inset 0 0 30px rgba(255,255,255,0.3);
+  }
+  .actions { display: flex; gap: 48px; align-items: center; color: var(--text-muted); font-size: 24px; }
+  .actions span { display: inline-flex; align-items: center; gap: 10px; }
+  .actions svg { width: 32px; height: 32px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+  .stars { color: var(--star); letter-spacing: 2px; font-size: 28px; margin-bottom: 8px; }
+  .checkin-line {
+    display: flex; align-items: center; gap: 12px; padding: 16px 20px;
+    background: var(--surface); border-radius: 16px; margin-bottom: 16px;
+    font-size: 26px; color: var(--text-muted);
+  }
+  .checkin-line .pin-ic {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: #134e4a; color: var(--accent);
+    display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
+  }
+  .checkin-line strong { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="phone theme-dark">
+  <div class="status"><span>23:15</span><div class="right">▮▮▮ ▮ 5G ▮▮ 82%</div></div>
+  <div class="appbar">
+    <div class="brand">
+      <svg class="logo-mark" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#2DD4BF"/><path d="M12 36c4-6 8-6 12 0s8 6 12 0 8-6 12 0" fill="none" stroke="#000" stroke-width="3.5" stroke-linecap="round"/><path d="M16 44c3.5-5 7-5 10.5 0s7 5 10.5 0 7-5 10.5 0" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" opacity=".7"/><path d="M28 18c0 0 2-6 8-4 4 1.5 4 6 2 8-3 3-8 2-10-4z" fill="#000" opacity=".9"/></svg>
+      <div class="title">NadaAqui</div>
+    </div>
+    <button class="icon" aria-label="Buscar"><svg width="40" height="40" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button>
+  </div>
+  <div class="hairline"></div>
+  <div class="content timeline">
+    <article class="post">
+      <div class="avatar t1">J</div>
+      <div>
+        <div class="head"><span class="name">João Silva</span><span class="handle">@joaosilva</span><span class="dot">·</span><span class="time">2h</span></div>
+        <p class="text">Água ótima hoje na Municipal 💧</p>
+        <div class="media"></div>
+        <div class="actions">
+          <span><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 01-1.2 4.3L12 21l-7.8-5.2A8.5 8.5 0 1112 3a8.4 8.4 0 019 8.5z"/></svg>16</span>
+          <span><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z"/></svg>128</span>
+        </div>
+      </div>
+    </article>
+    <article class="post">
+      <div class="avatar t2">M</div>
+      <div>
+        <div class="head"><span class="name">Marina Costa</span><span class="handle">@marina</span><span class="dot">·</span><span class="time">4h</span></div>
+        <p class="text">fez check-in em <span class="loc">Lagoa Azul</span></p>
+        <div class="checkin-line"><div class="pin-ic">📍</div><div><strong>Lagoa Azul</strong> · 1,8 km · Grátis</div></div>
+        <div class="actions">
+          <span><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 01-1.2 4.3L12 21l-7.8-5.2A8.5 8.5 0 1112 3a8.4 8.4 0 019 8.5z"/></svg>3</span>
+          <span><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z"/></svg>24</span>
+        </div>
+      </div>
+    </article>
+    <article class="post">
+      <div class="avatar t3">R</div>
+      <div>
+        <div class="head"><span class="name">Rafa Nadador</span><span class="handle">@rafanada</span><span class="dot">·</span><span class="time">6h</span></div>
+        <div class="stars">★★★★★</div>
+        <p class="text">Ótima estrutura e água cristalina no <span class="loc">Clube Aquático Centro</span>. Vale o Total Pass.</p>
+        <div class="actions">
+          <span><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 01-1.2 4.3L12 21l-7.8-5.2A8.5 8.5 0 1112 3a8.4 8.4 0 019 8.5z"/></svg>8</span>
+          <span><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z"/></svg>41</span>
+        </div>
+      </div>
+    </article>
+  </div>
+  <button class="fab" aria-label="Novo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+  <nav class="nav">
+    <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>Mapa</div>
+    <div class="nav-item active"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Feed</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.5-7-10a7 7 0 0114 0c0 5.5-7 10-7 10z"/><circle cx="12" cy="11" r="2.5"/></svg>Check-in</div>
+    <div class="nav-item"><span class="nav-badge">9+</span><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 0112 0c0 7 3 7 3 7H3s3 0 3-7"/><path d="M10 19a2 2 0 004 0"/></svg>Notificações</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>Perfil</div>
+  </nav>
+</div>
+</body>
+</html>
