@@ -15,3 +15,8 @@ build/
 # Local APK deliverables
 dist/
 
+
+# Local secrets / env (never commit anon keys)
+.env
+.env.*
+*.secrets

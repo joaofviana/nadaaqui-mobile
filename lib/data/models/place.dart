@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../../core/json/json_keys.dart';
+
 /// OpenAPI `PriceTypeFull`: free | paid | unknown
 enum PriceType {
   free,
@@ -58,6 +60,7 @@ enum PlaceType {
 }
 
 /// OpenAPI `PlaceSummary` (alias de domínio: Place).
+/// Aceita camelCase (WireMock/OpenAPI) e snake_case (RPC `nearby_places`).
 class Place extends Equatable {
   const Place({
     required this.id,
@@ -83,15 +86,15 @@ class Place extends Equatable {
 
   factory Place.fromJson(Map<String, dynamic> json) {
     return Place(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      placeType: PlaceType.fromWire(json['placeType'] as String?),
-      lat: (json['lat'] as num).toDouble(),
-      lng: (json['lng'] as num).toDouble(),
-      priceType: PriceType.fromWire(json['priceType'] as String?),
-      totalPass: TotalPass.fromWire(json['totalPass'] as String?),
-      distanceMeters: json['distanceMeters'] as int?,
-      thumbnailUrl: json['thumbnailUrl'] as String?,
+      id: jsonPick(json, 'id') as String,
+      name: jsonPick(json, 'name') as String,
+      placeType: PlaceType.fromWire(jsonPick(json, 'placeType') as String?),
+      lat: jsonDouble(jsonPick(json, 'lat'))!,
+      lng: jsonDouble(jsonPick(json, 'lng'))!,
+      priceType: PriceType.fromWire(jsonPick(json, 'priceType') as String?),
+      totalPass: TotalPass.fromWire(jsonPick(json, 'totalPass') as String?),
+      distanceMeters: jsonInt(jsonPick(json, 'distanceMeters')),
+      thumbnailUrl: jsonPick(json, 'thumbnailUrl') as String?,
     );
   }
 

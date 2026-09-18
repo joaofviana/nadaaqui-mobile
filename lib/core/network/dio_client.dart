@@ -5,7 +5,7 @@ import '../config/api_config.dart';
 import '../session/session_store.dart';
 import 'api_error.dart';
 
-/// Factory Dio com baseUrl e interceptor Bearer a partir do [SessionStore].
+/// Factory Dio com baseUrl e interceptor Bearer / Supabase apikey.
 Dio createDio(Ref ref) {
   final dio = Dio(
     BaseOptions(
@@ -22,14 +22,20 @@ Dio createDio(Ref ref) {
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) {
-        final token = ref.read(sessionStoreProvider)?.accessToken;
-        if (token != null && token.isNotEmpty) {
-          options.headers['Authorization'] = 'Bearer $token';
+        final sessionToken = ref.read(sessionStoreProvider)?.accessToken;
+        if (ApiConfig.useSupabase) {
+          final anon = ApiConfig.supabaseAnonKey;
+          options.headers['apikey'] = anon;
+          final bearer = (sessionToken != null && sessionToken.isNotEmpty)
+              ? sessionToken
+              : anon;
+          options.headers['Authorization'] = 'Bearer $bearer';
+        } else if (sessionToken != null && sessionToken.isNotEmpty) {
+          options.headers['Authorization'] = 'Bearer $sessionToken';
         }
         handler.next(options);
       },
       onError: (error, handler) {
-        // Anexa ApiError parseado para consumidores (não troca o tipo do DioException).
         try {
           error = error.copyWith(
             error: ApiError.fromDio(error),
