@@ -42,14 +42,20 @@ SUPABASE_URL=... SUPABASE_ANON_KEY=... dart run tool/smoke_supabase.dart
 APKs de referência (não versionados em git — pasta `dist/`):  
 `dist/nadaaqui-supabase-debug.apk`, `dist/nadaaqui-supabase-release.apk`.
 
-## Subir o WireMock
+## Contrato
 
-A partir de `../mock` (ou ajuste o volume):
+Uma fonte: RPCs do backend. Ver [`docs/api/README.md`](docs/api/README.md).
+**Não** há cópia YAML neste repo.
+
+## Subir o WireMock (fallback de dev)
+
+O mock mora no **outro** repo (`nadaaqui-backend/mock/wiremock`), não aqui.
+Não use `cd mobile` nem `cd ../mock` neste clone.
 
 ```bash
-cd ../mock
+cd /path/to/nadaaqui-backend
 docker run --rm -p 8080:8080 \
-  -v "$PWD/wiremock:/home/wiremock" \
+  -v "$PWD/mock/wiremock:/home/wiremock" \
   wiremock/wiremock:3.9.1
 ```
 
@@ -64,7 +70,7 @@ Base URL:
 ## Rodar o app
 
 ```bash
-cd mobile
+# neste repo (nadaaqui-mobile), na raiz — não existe pasta `mobile/`
 flutter pub get
 
 # Emulador Android (default)
@@ -119,7 +125,7 @@ No detalhe do place, escolha o chip **X-Mock-Scenario** antes do check-in:
 flutter test test/models_parse_test.dart
 ```
 
-Os JSON em `test/fixtures/` são cópias de `../mock/wiremock/__files/`.
+Os JSON em `test/fixtures/` são cópias de `nadaaqui-backend/mock/wiremock/__files/`.
 
 ## Estrutura
 
