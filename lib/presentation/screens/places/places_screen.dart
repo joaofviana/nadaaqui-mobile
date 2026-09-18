@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/location/location_controller.dart';
+import '../../../core/location/location_state.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/session/session_store.dart';
 import '../../../data/models/place.dart';
 import '../../../data/models/place_list_response.dart';
 import '../../../data/repositories/config_repository.dart';
@@ -11,6 +13,7 @@ import '../../../data/repositories/places_repository.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/distance_chip.dart';
 import '../../widgets/gps_denied_banner.dart';
+import '../../widgets/guest_gate.dart';
 import '../../widgets/place_badges.dart';
 
 enum PlacesFilter { all, free, paid, totalPass }
@@ -20,23 +23,40 @@ final placesFilterProvider =
 
 final selectedPlaceIdProvider = StateProvider<String?>((ref) => null);
 
+final lastCityProvider = StateProvider<String>((ref) => 'São Paulo');
+
 final placesListProvider =
     FutureProvider.autoDispose<PlaceListResponse>((ref) async {
   final filter = ref.watch(placesFilterProvider);
+  final loc = ref.watch(locationControllerProvider);
   final repo = ref.watch(placesRepositoryProvider);
+
+  List<String>? priceType;
+  List<String>? totalPass;
   switch (filter) {
     case PlacesFilter.all:
-      return repo.listNearQa();
+      break;
     case PlacesFilter.free:
-      return repo.listNearQa(priceType: const ['free']);
+      priceType = const ['free'];
     case PlacesFilter.paid:
-      return repo.listNearQa(priceType: const ['paid']);
+      priceType = const ['paid'];
     case PlacesFilter.totalPass:
-      return repo.listNearQa(totalPass: const ['yes']);
+      totalPass = const ['yes'];
   }
+
+  // Só após GPS negado/off: cidade piloto. Enquanto unknown/granted → QA GPS.
+  if (loc.showDeniedBanner) {
+    return repo.listByCity(
+      citySlug: 'sao-paulo',
+      priceType: priceType,
+      totalPass: totalPass,
+    );
+  }
+
+  return repo.listNearQa(priceType: priceType, totalPass: totalPass);
 });
 
-/// Mapa (guest OK): área placeholder + bottom sheet mínimo.
+/// Mapa (guest OK): placeholder + sheet; GPS denied → banner + fallback bairro.
 class PlacesScreen extends ConsumerStatefulWidget {
   const PlacesScreen({super.key});
 
@@ -45,6 +65,8 @@ class PlacesScreen extends ConsumerStatefulWidget {
 }
 
 class _PlacesScreenState extends ConsumerState<PlacesScreen> {
+  final _bairroCtrl = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -54,11 +76,22 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
   }
 
   @override
+  void dispose() {
+    _bairroCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final filter = ref.watch(placesFilterProvider);
     final async = ref.watch(placesListProvider);
     final selectedId = ref.watch(selectedPlaceIdProvider);
     final cfgAsync = ref.watch(remoteConfigProvider);
+    final loc = ref.watch(locationControllerProvider);
+    final isGuestUser = ref.watch(sessionStoreProvider) == null;
+    final gpsOk = loc.isGranted;
+    final showGpsFallback = loc.showDeniedBanner;
+    final city = ref.watch(lastCityProvider);
 
     return Scaffold(
       body: Column(
@@ -90,9 +123,56 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
             ),
           ),
           const GpsDeniedBanner(),
+          if (showGpsFallback) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Fallback · $city (última cidade)',
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: TextField(
+                controller: _bairroCtrl,
+                decoration: InputDecoration(
+                  hintText: 'Digite um bairro…',
+                  hintStyle: const TextStyle(color: AppColors.muted),
+                  prefixIcon:
+                      const Icon(Icons.search, color: AppColors.muted, size: 20),
+                  filled: true,
+                  fillColor: const Color(0xFFF7F9F9),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(999),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(999),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                ),
+                onSubmitted: (_) {
+                  // Sprint 1: UI only — busca por bairro chega com API depois.
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Busca por bairro em breve'),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
             child: Row(
               children: [
                 _FilterPill(
@@ -131,10 +211,13 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
                 if (items.isEmpty) {
                   return const Center(child: Text('Nenhum local'));
                 }
-                final sel = items.cast<Place?>().firstWhere(
-                      (p) => p!.id == selectedId,
-                      orElse: () => items.first,
-                    )!;
+                Place sel = items.first;
+                for (final p in items) {
+                  if (p.id == selectedId) {
+                    sel = p;
+                    break;
+                  }
+                }
                 if (selectedId != sel.id) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     ref.read(selectedPlaceIdProvider.notifier).state = sel.id;
@@ -146,6 +229,8 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
                     _MapPlaceholder(
                       places: items,
                       selectedId: sel.id,
+                      showGuestPill: isGuestUser && gpsOk,
+                      cityApprox: showGpsFallback ? city : null,
                       onSelect: (id) =>
                           ref.read(selectedPlaceIdProvider.notifier).state = id,
                     ),
@@ -156,7 +241,15 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
                       child: _PlaceBottomSheet(
                         place: sel,
                         checkInRadiusMeters: radius,
+                        distanceAvailable: gpsOk,
+                        isGuest: isGuestUser,
                         onOpen: () => context.go('/mapa/place/${sel.id}'),
+                        onGuestCheckIn: () async {
+                          final ok = await ensureLoggedIn(context, ref);
+                          if (ok && context.mounted) {
+                            context.go('/mapa/place/${sel.id}');
+                          }
+                        },
                       ),
                     ),
                   ],
@@ -212,33 +305,88 @@ class _FilterPill extends StatelessWidget {
   }
 }
 
-/// Placeholder do mapa (google_maps fora do scaffold Sprint 1).
 class _MapPlaceholder extends StatelessWidget {
   const _MapPlaceholder({
     required this.places,
     required this.selectedId,
     required this.onSelect,
+    this.showGuestPill = false,
+    this.cityApprox,
   });
 
   final List<Place> places;
   final String selectedId;
   final ValueChanged<String> onSelect;
+  final bool showGuestPill;
+  final String? cityApprox;
 
   @override
   Widget build(BuildContext context) {
-    // Layouts relativos simples para pins QA.
     final layouts = <String, Alignment>{
       QaGps.placeInId: const Alignment(-0.1, -0.15),
       QaGps.placeOutId: const Alignment(0.35, 0.25),
     };
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFFF5F8FA),
-      ),
+      color: const Color(0xFFF5F8FA),
       child: CustomPaint(
         painter: _GridPainter(),
         child: Stack(
           children: [
+            if (cityApprox != null)
+              Positioned(
+                top: 12,
+                left: 12,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.95),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Text.rich(
+                    TextSpan(
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.text,
+                      ),
+                      children: [
+                        TextSpan(text: cityApprox),
+                        const TextSpan(
+                          text: ' · aproximado',
+                          style: TextStyle(
+                            color: AppColors.muted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            if (showGuestPill)
+              Positioned(
+                top: 12,
+                right: 12,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Text(
+                    'Convidado',
+                    style: TextStyle(
+                      color: AppColors.muted,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
             const Positioned(
               top: 48,
               left: 28,
@@ -324,12 +472,18 @@ class _PlaceBottomSheet extends StatelessWidget {
   const _PlaceBottomSheet({
     required this.place,
     required this.checkInRadiusMeters,
+    required this.distanceAvailable,
+    required this.isGuest,
     required this.onOpen,
+    required this.onGuestCheckIn,
   });
 
   final Place place;
   final int? checkInRadiusMeters;
+  final bool distanceAvailable;
+  final bool isGuest;
   final VoidCallback onOpen;
+  final VoidCallback onGuestCheckIn;
 
   @override
   Widget build(BuildContext context) {
@@ -373,23 +527,38 @@ class _PlaceBottomSheet extends StatelessWidget {
                 runSpacing: 6,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  if (dist != null && checkInRadiusMeters != null)
+                  if (!distanceAvailable)
+                    const DistanceChip.unavailable()
+                  else if (dist != null && checkInRadiusMeters != null)
                     DistanceChip(
                       distanceMeters: dist,
                       checkInRadiusMeters: checkInRadiusMeters!,
-                      compact: true,
                     )
-                  else if (dist != null)
-                    Text(
-                      formatDistanceMeters(dist),
-                      style: const TextStyle(
-                        color: AppColors.muted,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                  else
+                    const DistanceChip.unavailable(),
                   ...placePills(place),
                 ],
               ),
+              if (isGuest) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: onGuestCheckIn,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.teal,
+                      side: const BorderSide(color: AppColors.teal, width: 2),
+                      shape: const StadiumBorder(),
+                      minimumSize: const Size.fromHeight(44),
+                      textStyle: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                    child: const Text('Entrar para fazer check-in'),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

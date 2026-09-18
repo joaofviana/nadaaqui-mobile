@@ -4,6 +4,7 @@ import '../../core/network/dio_client.dart';
 import '../api/places_api.dart';
 import '../models/place_detail.dart';
 import '../models/place_list_response.dart';
+import '../models/presence.dart';
 
 /// GPS de QA documentado no mock README.
 class QaGps {
@@ -31,7 +32,23 @@ class PlacesRepository {
     );
   }
 
+  /// Sem GPS: cidade piloto (OpenAPI `citySlug`), sem lat/lng.
+  Future<PlaceListResponse> listByCity({
+    required String citySlug,
+    List<String>? priceType,
+    List<String>? totalPass,
+  }) {
+    return _api.listPlaces(
+      citySlug: citySlug,
+      priceType: priceType,
+      totalPass: totalPass,
+    );
+  }
+
   Future<PlaceDetail> getPlace(String placeId) => _api.getPlace(placeId);
+
+  Future<PresenceResponse> getPresence(String placeId) =>
+      _api.getPresence(placeId);
 }
 
 final placesApiProvider = Provider<PlacesApi>((ref) {

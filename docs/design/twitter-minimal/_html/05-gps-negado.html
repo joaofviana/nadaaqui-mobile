@@ -65,9 +65,21 @@
     display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
     font-size: 26px; color: var(--muted);
   }
-  .meta .dist { color: var(--teal); font-weight: 600; }
   .meta .stars { color: var(--text); }
   .meta .stars span { color: #F59E0B; }
+  .city-tag {
+    position: absolute;
+    top: 24px; left: 32px;
+    z-index: 2;
+    padding: 12px 22px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.95);
+    border: 1px solid var(--border);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .city-tag span { color: var(--muted); font-weight: 500; }
 </style>
 </head>
 <body>
@@ -82,7 +94,21 @@
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0F1419" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
     </button>
   </div>
-  <div class="chip-row">
+  <div class="gps-banner">
+    <div class="gps-copy">
+      <strong>Localização desativada</strong>
+      Permissão negada. O mapa usa a última cidade; digite um bairro para ajustar.
+    </div>
+    <button class="gps-btn">Abrir configurações</button>
+  </div>
+  <div class="fallback-hint">Fallback · São Paulo (última cidade)</div>
+  <div class="fallback-bar">
+    <div class="search-fake">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      Digite um bairro…
+    </div>
+  </div>
+  <div class="chip-row" style="padding-top:0">
     <div class="chip active">Todos</div>
     <div class="chip">Grátis</div>
     <div class="chip">Pago</div>
@@ -90,6 +116,7 @@
   </div>
   <div class="content">
     <div class="map-area">
+      <div class="city-tag">São Paulo <span>· aproximado</span></div>
       <span class="label" style="top:18%;left:12%">Vila Mariana</span>
       <span class="label" style="top:42%;left:58%">Paraíso</span>
       <span class="label" style="top:68%;left:22%">Saúde</span>
@@ -103,10 +130,10 @@
       <div class="handle"></div>
       <h2>Piscina Municipal Vila Mariana</h2>
       <div class="meta">
-        <span class="chip-dist gray">450 m</span>
         <span class="badge">Grátis</span>
         <span class="badge teal">Total Pass</span>
         <span class="stars"><span>★</span> 4,6</span>
+        <span style="font-size:22px">distância indisponível</span>
       </div>
     </div>
   </div>

@@ -53,17 +53,6 @@
     display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
     margin-bottom: 28px; font-size: 26px; color: var(--muted);
   }
-  .cta {
-    width: 100%;
-    height: 96px;
-    background: var(--teal);
-    color: #fff;
-    border: 0;
-    border-radius: 999px;
-    font-size: 32px;
-    font-weight: 700;
-    margin-bottom: 36px;
-  }
   .who {
     display: flex;
     align-items: center;
@@ -82,9 +71,9 @@
   .av.a { background: #99f6e4; color: #0f766e; }
   .av.b { background: #bae6fd; color: #0369a1; }
   .av.c { background: #fde68a; color: #92400e; }
-  .av.d { background: #ddd6fe; color: #5b21b6; }
-  .who-text { font-size: 26px; color: var(--muted); }
+  .who-text { font-size: 26px; color: var(--muted); line-height: 1.35; }
   .who-text strong { color: var(--text); font-weight: 700; }
+  .who-text .ocultos { color: var(--muted); font-weight: 600; }
   .list-item {
     display: flex;
     justify-content: space-between;
@@ -97,6 +86,13 @@
   .list-item .value { color: var(--text); font-weight: 600; text-align: right; }
   .list-item .value small {
     display: block; font-size: 22px; font-weight: 400; color: var(--muted); margin-top: 4px;
+  }
+  .guest-hint {
+    font-size: 22px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: -20px;
+    margin-bottom: 28px;
   }
 </style>
 </head>
@@ -126,15 +122,15 @@
       <span class="badge teal">Total Pass</span>
       <span>★ 4,3</span>
     </div>
-    <button class="cta">Fazer check-in</button>
+    <button class="cta-outline">Entrar para fazer check-in</button>
+    <p class="guest-hint">Convidado · leitura liberada · ações sociais pedem login</p>
     <div class="who">
       <div class="avatars">
         <div class="av a">A</div>
         <div class="av b">B</div>
         <div class="av c">C</div>
-        <div class="av d">D</div>
       </div>
-      <div class="who-text"><strong>4</strong> pessoas estão aqui</div>
+      <div class="who-text"><strong>3</strong> pessoas · <span class="ocultos">+2 ocultos</span></div>
     </div>
     <div class="list-item">
       <span class="label">Horário</span>

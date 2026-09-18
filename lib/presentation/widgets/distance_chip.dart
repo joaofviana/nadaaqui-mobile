@@ -4,11 +4,11 @@ import '../theme/app_colors.dart';
 
 /// Cor semântica da distância vs raio de check-in (GET /config).
 ///
-/// - verde/teal se `distanceMeters <= checkInRadiusMeters`
-/// - âmbar se `distanceMeters <= 2 * checkInRadiusMeters`
-/// - cinza se mais longe
-///
-/// [checkInRadiusMeters] **obrigatório** — nunca hardcodar o raio no caller.
+/// Tokens UX (não usar teal):
+/// - verde `#16A34A` se ≤ checkInRadiusMeters (default remoto 150)
+/// - âmbar `#D97706` se ≤ 2×raio
+/// - cinza `#6B7280` se > 2×
+/// Sem GPS / sem metros: texto muted “distância indisponível”.
 enum DistanceBand { inRange, near, far }
 
 DistanceBand distanceBand({
@@ -20,14 +20,33 @@ DistanceBand distanceBand({
   return DistanceBand.far;
 }
 
-Color distanceBandColor(DistanceBand band) {
+class _BandStyle {
+  const _BandStyle(this.fg, this.bg, this.border);
+  final Color fg;
+  final Color bg;
+  final Color border;
+}
+
+_BandStyle _styleFor(DistanceBand band) {
   switch (band) {
     case DistanceBand.inRange:
-      return AppColors.teal;
+      return const _BandStyle(
+        AppColors.distGreen,
+        AppColors.distGreenBg,
+        AppColors.distGreenBorder,
+      );
     case DistanceBand.near:
-      return AppColors.amber;
+      return const _BandStyle(
+        AppColors.distAmber,
+        AppColors.distAmberBg,
+        AppColors.distAmberBorder,
+      );
     case DistanceBand.far:
-      return AppColors.grayFar;
+      return const _BandStyle(
+        AppColors.distGray,
+        AppColors.distGrayBg,
+        AppColors.distGrayBorder,
+      );
   }
 }
 
@@ -43,48 +62,54 @@ class DistanceChip extends StatelessWidget {
     super.key,
     required this.distanceMeters,
     required this.checkInRadiusMeters,
-    this.compact = false,
-  });
+  }) : unavailable = false;
 
-  final int distanceMeters;
+  /// Sem GPS / distância indisponível — nunca inventa número.
+  const DistanceChip.unavailable({super.key})
+      : distanceMeters = null,
+        checkInRadiusMeters = null,
+        unavailable = true;
 
-  /// Raio remoto (RemoteConfig.checkInRadiusMeters). Não usar literal.
-  final int checkInRadiusMeters;
-  final bool compact;
+  final int? distanceMeters;
+
+  /// Raio remoto (RemoteConfig.checkInRadiusMeters). Não hardcodar no caller.
+  final int? checkInRadiusMeters;
+  final bool unavailable;
 
   @override
   Widget build(BuildContext context) {
-    final band = distanceBand(
-      distanceMeters: distanceMeters,
-      checkInRadiusMeters: checkInRadiusMeters,
-    );
-    final color = distanceBandColor(band);
-    final label = formatDistanceMeters(distanceMeters);
-
-    if (compact) {
-      return Text(
-        label,
+    if (unavailable || distanceMeters == null || checkInRadiusMeters == null) {
+      return const Text(
+        'distância indisponível',
         style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w600,
-          fontSize: 14,
+          color: AppColors.muted,
+          fontWeight: FontWeight.w500,
+          fontSize: 13,
         ),
       );
     }
 
+    final band = distanceBand(
+      distanceMeters: distanceMeters!,
+      checkInRadiusMeters: checkInRadiusMeters!,
+    );
+    final s = _styleFor(band);
+    final label = formatDistanceMeters(distanceMeters!);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: s.bg,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withOpacity(0.45)),
+        border: Border.all(color: s.border),
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w600,
+          color: s.fg,
+          fontWeight: FontWeight.w700,
           fontSize: 13,
+          letterSpacing: -0.2,
         ),
       ),
     );

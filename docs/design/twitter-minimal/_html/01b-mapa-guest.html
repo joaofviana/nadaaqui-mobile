@@ -5,7 +5,7 @@
 <link rel="stylesheet" href="shared.css"/>
 <style>
   .map-area {
-    position: absolute; inset: 0 0 280px 0;
+    position: absolute; inset: 0 0 320px 0;
     background:
       linear-gradient(#e8eef1 1px, transparent 1px),
       linear-gradient(90deg, #e8eef1 1px, transparent 1px),
@@ -64,10 +64,33 @@
   .meta {
     display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
     font-size: 26px; color: var(--muted);
+    margin-bottom: 20px;
   }
-  .meta .dist { color: var(--teal); font-weight: 600; }
   .meta .stars { color: var(--text); }
   .meta .stars span { color: #F59E0B; }
+  .sheet-cta {
+    width: 100%;
+    height: 72px;
+    background: #fff;
+    color: var(--teal);
+    border: 2px solid var(--teal);
+    border-radius: 999px;
+    font-size: 26px;
+    font-weight: 700;
+  }
+  .guest-pill {
+    position: absolute;
+    top: 24px; right: 32px;
+    z-index: 2;
+    padding: 12px 22px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid var(--border);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--muted);
+    box-shadow: 0 2px 8px rgba(15,20,25,0.06);
+  }
 </style>
 </head>
 <body>
@@ -90,6 +113,7 @@
   </div>
   <div class="content">
     <div class="map-area">
+      <div class="guest-pill">Convidado</div>
       <span class="label" style="top:18%;left:12%">Vila Mariana</span>
       <span class="label" style="top:42%;left:58%">Paraíso</span>
       <span class="label" style="top:68%;left:22%">Saúde</span>
@@ -108,6 +132,7 @@
         <span class="badge teal">Total Pass</span>
         <span class="stars"><span>★</span> 4,6</span>
       </div>
+      <button class="sheet-cta">Entrar para fazer check-in</button>
     </div>
   </div>
   <nav class="nav">

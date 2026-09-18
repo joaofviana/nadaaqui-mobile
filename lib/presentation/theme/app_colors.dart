@@ -10,6 +10,22 @@ abstract final class AppColors {
   static const Color border = Color(0xFFCFD9DE);
   static const Color bg = Color(0xFFFFFFFF);
   static const Color star = Color(0xFFF59E0B);
-  static const Color amber = Color(0xFFD97706);
-  static const Color grayFar = Color(0xFF8B98A5);
+
+  // Distance chip (semantic — NÃO teal)
+  static const Color distGreen = Color(0xFF16A34A);
+  static const Color distGreenBg = Color(0xFFDCFCE7);
+  static const Color distGreenBorder = Color(0xFF86EFAC);
+  static const Color distAmber = Color(0xFFD97706);
+  static const Color distAmberBg = Color(0xFFFEF3C7);
+  static const Color distAmberBorder = Color(0xFFFCD34D);
+  static const Color distGray = Color(0xFF6B7280);
+  static const Color distGrayBg = Color(0xFFF3F4F6);
+  static const Color distGrayBorder = Color(0xFFD1D5DB);
+
+  // GPS banner
+  static const Color gpsBannerBg = Color(0xFFFEF3C7);
+  static const Color gpsBannerBorder = Color(0xFFFCD34D);
+  static const Color gpsBannerTitle = Color(0xFF78350F);
+  static const Color gpsBannerBody = Color(0xFF92400E);
+  static const Color gpsBannerBtn = Color(0xFFD97706);
 }

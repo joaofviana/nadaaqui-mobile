@@ -2,8 +2,9 @@ import 'package:dio/dio.dart';
 
 import '../models/place_detail.dart';
 import '../models/place_list_response.dart';
+import '../models/presence.dart';
 
-/// GET /places e GET /places/{placeId}
+/// GET /places, GET /places/{placeId}, GET /places/{placeId}/presence
 class PlacesApi {
   PlacesApi(this._dio);
 
@@ -45,5 +46,11 @@ class PlacesApi {
   Future<PlaceDetail> getPlace(String placeId) async {
     final res = await _dio.get<Map<String, dynamic>>('/places/$placeId');
     return PlaceDetail.fromJson(res.data!);
+  }
+
+  Future<PresenceResponse> getPresence(String placeId) async {
+    final res =
+        await _dio.get<Map<String, dynamic>>('/places/$placeId/presence');
+    return PresenceResponse.fromJson(res.data!);
   }
 }
