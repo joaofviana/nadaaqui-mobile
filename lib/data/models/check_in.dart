@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../../core/json/json_keys.dart';
+
 /// OpenAPI `CheckIn.status`: active | ended
 enum CheckInStatus {
   active,
@@ -40,18 +42,19 @@ class CheckIn extends Equatable {
   final bool visibleInPresence;
 
   factory CheckIn.fromJson(Map<String, dynamic> json) {
+    final started = jsonPick(json, 'startedAt') as String;
+    final expires = jsonPick(json, 'expiresAt') as String;
+    final ended = jsonPick(json, 'endedAt');
     return CheckIn(
-      id: json['id'] as String,
-      placeId: json['placeId'] as String,
-      userId: json['userId'] as String,
-      status: CheckInStatus.fromWire(json['status'] as String?),
-      startedAt: DateTime.parse(json['startedAt'] as String),
-      expiresAt: DateTime.parse(json['expiresAt'] as String),
-      endedAt: json['endedAt'] != null
-          ? DateTime.parse(json['endedAt'] as String)
-          : null,
-      distanceMeters: json['distanceMeters'] as int?,
-      visibleInPresence: json['visibleInPresence'] as bool,
+      id: jsonPick(json, 'id') as String,
+      placeId: jsonPick(json, 'placeId') as String,
+      userId: jsonPick(json, 'userId') as String,
+      status: CheckInStatus.fromWire(jsonPick(json, 'status') as String?),
+      startedAt: DateTime.parse(started),
+      expiresAt: DateTime.parse(expires),
+      endedAt: ended != null ? DateTime.parse(ended as String) : null,
+      distanceMeters: jsonInt(jsonPick(json, 'distanceMeters')),
+      visibleInPresence: (jsonPick(json, 'visibleInPresence') as bool?) ?? true,
     );
   }
 

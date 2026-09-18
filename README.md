@@ -1,11 +1,46 @@
 # NadaAqui — client mobile (Flutter)
 
-MVP Flutter que consome Config, Places e Check-in da API (`/v1`).
+MVP Flutter que consome Config, Places e Check-in via **Supabase PostgREST RPCs**
+(ou WireMock `/v1` como fallback).
 
 ## Pré-requisitos
 
-- Flutter SDK ≥ 3.3 (quando disponível: `flutter pub get`)
-- Docker (para WireMock)
+- Flutter SDK ≥ 3.3 (`flutter pub get`)
+- Conta/projeto Supabase **ou** Docker (WireMock local)
+
+## Live Supabase (recomendado)
+
+Injete URL + anon key **somente** via `--dart-define` (nunca commitados):
+
+```bash
+flutter run \
+  --dart-define=SUPABASE_URL=https://YOUR_PROJECT.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=YOUR_ANON_KEY
+
+# Build APK
+flutter build apk --debug \
+  --dart-define=SUPABASE_URL=https://YOUR_PROJECT.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=YOUR_ANON_KEY
+```
+
+Quando `SUPABASE_URL` está presente, o Dio usa `{SUPABASE_URL}/rest/v1` e chama:
+
+| RPC | Uso |
+|-----|-----|
+| `POST /rpc/get_remote_config` | Config remota |
+| `POST /rpc/nearby_places` | Lista / mapa |
+| `POST /rpc/get_place` | Ficha |
+| `POST /rpc/who_is_here` | Presença |
+| `POST /rpc/create_check_in` / `checkout_check_in` | Check-in |
+
+Smoke (env vars, sem commit de secrets):
+
+```bash
+SUPABASE_URL=... SUPABASE_ANON_KEY=... dart run tool/smoke_supabase.dart
+```
+
+APKs de referência (não versionados em git — pasta `dist/`):  
+`dist/nadaaqui-supabase-debug.apk`, `dist/nadaaqui-supabase-release.apk`.
 
 ## Subir o WireMock
 

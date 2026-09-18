@@ -72,4 +72,27 @@ void main() {
         ApiError.fromJson(_load('error-already-checked-in.json'), statusCode: 409);
     expect(e.isAlreadyCheckedIn, isTrue);
   });
+
+  test('parse PlaceListResponse from nearby_places snake_case rows', () {
+    final rows = [
+      {
+        'id': '11111111-1111-1111-1111-111111111111',
+        'name': 'Piscina Clube Centro',
+        'place_type': 'pool',
+        'lat': -23.5509,
+        'lng': -46.6335,
+        'price_type': 'paid',
+        'total_pass': 'yes',
+        'distance_meters': 49,
+        'thumbnail_url': null,
+        'total_count': 10,
+      },
+    ];
+    final list = PlaceListResponse.fromNearbyRpc(rows, limit: 5, offset: 0);
+    expect(list.total, 10);
+    expect(list.items.length, 1);
+    expect(list.items.first.placeType.name, 'pool');
+    expect(list.items.first.distanceMeters, 49);
+    expect(list.items.first.priceType.wire, 'paid');
+  });
 }

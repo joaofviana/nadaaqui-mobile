@@ -9,8 +9,8 @@ class MainShell extends StatelessWidget {
 
   final StatefulNavigationShell navigationShell;
 
-  /// Stub badge overflow (HOME-IA mock).
-  static const notificationBadgeLabel = '9+';
+  /// Contagem real chega em P2. Até lá a tab existe, sem número inventado.
+  static const String? notificationBadgeLabel = null;
 
   void _onTap(int index) {
     navigationShell.goBranch(
@@ -113,7 +113,7 @@ class _NavItem extends StatelessWidget {
               clipBehavior: Clip.none,
               children: [
                 Icon(selected ? selectedIcon : icon, color: color, size: 24),
-                if (badge != null)
+                if (badge != null && badge!.isNotEmpty)
                   Positioned(
                     top: -6,
                     right: -14,
