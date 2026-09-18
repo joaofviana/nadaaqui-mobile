@@ -27,7 +27,10 @@ GoRouter createAppRouter() {
       GoRoute(
         path: '/entrar',
         parentNavigatorKey: _rootKey,
-        builder: (context, state) => const LoginScreen(),
+        builder: (context, state) {
+          final modo = state.uri.queryParameters['modo'];
+          return LoginScreen(initialSignUp: modo == 'criar');
+        },
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {

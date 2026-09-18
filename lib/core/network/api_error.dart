@@ -64,6 +64,12 @@ class ApiError extends Equatable implements Exception {
   factory ApiError.fromDio(DioException e) {
     final data = e.response?.data;
     final status = e.response?.statusCode;
+    if (data is Map && data['error'] is Map) {
+      return ApiError.fromJson(
+        Map<String, dynamic>.from(data['error'] as Map),
+        statusCode: status,
+      );
+    }
     if (data is Map<String, dynamic>) {
       return ApiError.fromJson(data, statusCode: status);
     }
