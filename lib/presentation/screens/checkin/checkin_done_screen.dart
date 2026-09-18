@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../providers/active_checkin_provider.dart';
 import '../../theme/app_colors.dart';
-import '../../widgets/guest_gate.dart';
+import '../compose/compose_screen.dart';
 
 /// Tela 04 — Check-in feito (sucesso teal, branco esparso, links de texto).
 class CheckinDoneScreen extends ConsumerWidget {
@@ -127,10 +127,23 @@ class CheckinDoneScreen extends ConsumerWidget {
                     ),
                     _TextLink(
                       label: 'Compartilhar no feed',
-                      onTap: () async {
-                        final ok = await ensureLoggedIn(context, ref);
-                        if (ok && context.mounted) context.go('/feed');
-                      },
+                      onTap: () => openCompose(
+                        context,
+                        ref,
+                        kind: ComposeKind.checkIn,
+                        placeId: active.checkIn.placeId,
+                        placeName: active.placeName,
+                      ),
+                    ),
+                    _TextLink(
+                      label: 'Avaliar este lugar',
+                      onTap: () => openCompose(
+                        context,
+                        ref,
+                        kind: ComposeKind.review,
+                        placeId: active.checkIn.placeId,
+                        placeName: active.placeName,
+                      ),
                     ),
                     const Spacer(flex: 3),
                   ],

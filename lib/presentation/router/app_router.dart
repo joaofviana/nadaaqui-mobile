@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../screens/auth/login_screen.dart';
 import '../screens/checkin/checkin_tab_screen.dart';
+import '../screens/compose/compose_screen.dart';
 import '../screens/config/config_screen.dart';
 import '../screens/feed/feed_screen.dart';
 import '../screens/home/home_screen.dart';
@@ -30,6 +31,18 @@ GoRouter createAppRouter() {
         builder: (context, state) {
           final modo = state.uri.queryParameters['modo'];
           return LoginScreen(initialSignUp: modo == 'criar');
+        },
+      ),
+      GoRoute(
+        path: '/compose',
+        parentNavigatorKey: _rootKey,
+        builder: (context, state) {
+          final q = state.uri.queryParameters;
+          return ComposeScreen(
+            kind: composeKindFromQuery(q['tipo']),
+            placeId: q['placeId'],
+            placeName: q['placeName'],
+          );
         },
       ),
       StatefulShellRoute.indexedStack(
