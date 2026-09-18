@@ -121,11 +121,10 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
 
   void _publish() {
     if (!_canPublish) return;
-    final user = ref.read(sessionStoreProvider)?.user;
-    final name = user?.displayName.trim().isNotEmpty == true
-        ? user!.displayName.trim()
-        : 'Você';
-    final letter = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    final session = ref.read(sessionStoreProvider);
+    final raw = session?.user.displayName.trim() ?? '';
+    final name = raw.isEmpty ? 'Você' : raw;
+    final letter = name.characters.first.toUpperCase();
     final handle = '@${name.toLowerCase().replaceAll(RegExp(r'\s+'), '')}';
     final kind = switch (widget.kind) {
       ComposeKind.review => FeedPostKind.review,
@@ -253,7 +252,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
                         backgroundColor: const Color(0xFF99F6E4),
                         child: Text(
                           _initial(
-                            ref.watch(sessionStoreProvider)?.user?.displayName,
+                            ref.watch(sessionStoreProvider)?.user.displayName,
                           ),
                           style: const TextStyle(
                             color: Color(0xFF0F766E),
