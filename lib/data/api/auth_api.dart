@@ -5,15 +5,18 @@ import '../../core/network/api_error.dart';
 import '../models/auth_session.dart';
 import '../models/user.dart';
 
-/// Auth e-mail/senha via Supabase Auth REST (`/auth/v1`).
-/// Sem `supabase_flutter` — mesma stack Dio do restante do app.
+/// Auth e-mail/senha.
+/// Live: Supabase GoTrue `/auth/v1`.
+/// Mock: WireMock `/v1/auth/{login,signup,recover}`.
 class AuthApi {
   AuthApi(this._dio);
 
   final Dio _dio;
 
+  bool get _live => ApiConfig.useSupabase;
+
   String get _authRoot {
-    final root = ApiConfig.supabaseUrl.trim().replaceAll(RegExp(r'/+$'), '');
+    final root = ApiConfig.supabaseUrl.trim().replaceAll(RegExp(r'/+${'$'}'), '');
     return '$root/auth/v1';
   }
 
@@ -29,12 +32,19 @@ class AuthApi {
     required String password,
   }) async {
     try {
+      if (_live) {
+        final res = await _dio.post<Map<String, dynamic>>(
+          '$_authRoot/token?grant_type=password',
+          data: {'email': email.trim(), 'password': password},
+          options: _anonOptions,
+        );
+        return _sessionFromGotrue(res.data ?? const {});
+      }
       final res = await _dio.post<Map<String, dynamic>>(
-        '$_authRoot/token?grant_type=password',
+        '${ApiConfig.apiBaseUrl}/auth/login',
         data: {'email': email.trim(), 'password': password},
-        options: _anonOptions,
       );
-      return _sessionFromGotrue(res.data ?? const {});
+      return AuthSession.fromJson(res.data ?? const {});
     } on DioException catch (e) {
       throw _mapAuthError(e);
     }
@@ -46,25 +56,56 @@ class AuthApi {
     String? displayName,
   }) async {
     try {
+      if (_live) {
+        final res = await _dio.post<Map<String, dynamic>>(
+          '$_authRoot/signup',
+          data: {
+            'email': email.trim(),
+            'password': password,
+            if (displayName != null && displayName.trim().isNotEmpty)
+              'data': {'display_name': displayName.trim()},
+          },
+          options: _anonOptions,
+        );
+        final data = res.data ?? const <String, dynamic>{};
+        if (data['access_token'] == null) {
+          throw const ApiError(
+            code: ApiErrorCode.unauthorized,
+            message:
+                'Conta criada. Confirme o e-mail se o projeto exigir, depois entre.',
+          );
+        }
+        return _sessionFromGotrue(data);
+      }
       final res = await _dio.post<Map<String, dynamic>>(
-        '$_authRoot/signup',
+        '${ApiConfig.apiBaseUrl}/auth/signup',
         data: {
           'email': email.trim(),
           'password': password,
-          if (displayName != null && displayName.trim().isNotEmpty)
-            'data': {'display_name': displayName.trim()},
+          'displayName': displayName?.trim(),
         },
-        options: _anonOptions,
       );
-      final data = res.data ?? const <String, dynamic>{};
-      if (data['access_token'] == null) {
-        throw const ApiError(
-          code: ApiErrorCode.unauthorized,
-          message:
-              'Conta criada. Confirme o e-mail se o projeto exigir, depois entre.',
+      return AuthSession.fromJson(res.data ?? const {});
+    } on DioException catch (e) {
+      throw _mapAuthError(e);
+    }
+  }
+
+  /// GoTrue recover — sempre 200 se o payload for válido (não vaza se o e-mail existe).
+  Future<void> recoverPassword({required String email}) async {
+    try {
+      if (_live) {
+        await _dio.post<void>(
+          '$_authRoot/recover',
+          data: {'email': email.trim()},
+          options: _anonOptions,
         );
+        return;
       }
-      return _sessionFromGotrue(data);
+      await _dio.post<void>(
+        '${ApiConfig.apiBaseUrl}/auth/recover',
+        data: {'email': email.trim()},
+      );
     } on DioException catch (e) {
       throw _mapAuthError(e);
     }
