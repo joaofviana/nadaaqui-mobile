@@ -20,7 +20,7 @@ class AuthApi {
     while (root.endsWith('/')) {
       root = root.substring(0, root.length - 1);
     }
-    return root + '/auth/v1';
+    return '$root/auth/v1';
   }
 
   Options get _anonOptions => Options(

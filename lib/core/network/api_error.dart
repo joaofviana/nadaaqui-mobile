@@ -92,9 +92,3 @@ class ApiError extends Equatable implements Exception {
   @override
   String toString() => 'ApiError($code, $statusCode): $message';
 }
-
-ApiError extractApiError(Object e) {
-  if (e is ApiError) return e;
-  if (e is DioException) return ApiError.fromDio(e);
-  return ApiError(code: ApiErrorCode.unknown, message: e.toString());
-}
