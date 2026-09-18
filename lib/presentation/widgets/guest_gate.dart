@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/session/session_store.dart';
-import '../../data/models/auth_session.dart';
-import '../../data/models/user.dart';
 import '../theme/app_colors.dart';
 
 /// G-GUEST: ações sociais pedem login; ficha/mapa/lista são leitura livre.
 bool isGuest(WidgetRef ref) => ref.watch(sessionStoreProvider) == null;
 
-/// Mostra gate de login. Em smoke WireMock, “Entrar (QA)” injeta sessão mock.
+/// Abre a tela real de e-mail/senha. Sem token mock.
 Future<bool> ensureLoggedIn(BuildContext context, WidgetRef ref) async {
   if (ref.read(sessionStoreProvider.notifier).isAuthenticated) return true;
 
   final tokens = NadaTokens.of(context);
-  final ok = await showModalBottomSheet<bool>(
+  final go = await showModalBottomSheet<bool>(
     context: context,
     backgroundColor: tokens.surface,
     shape: const RoundedRectangleBorder(
@@ -55,23 +54,8 @@ Future<bool> ensureLoggedIn(BuildContext context, WidgetRef ref) async {
               ),
               const SizedBox(height: 20),
               FilledButton(
-                onPressed: () {
-                  ref.read(sessionStoreProvider.notifier).setSession(
-                        const AuthSession(
-                          accessToken: 'mock-access-token',
-                          refreshToken: 'mock-refresh-token',
-                          expiresIn: 3600,
-                          user: User(
-                            id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-                            email: 'qa@nadaaqui.app',
-                            displayName: 'QA Tester',
-                            showInPresence: true,
-                          ),
-                        ),
-                      );
-                  Navigator.pop(ctx, true);
-                },
-                child: const Text('Entrar (QA)'),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Entrar para fazer check-in'),
               ),
               const SizedBox(height: 8),
               TextButton(
@@ -87,5 +71,9 @@ Future<bool> ensureLoggedIn(BuildContext context, WidgetRef ref) async {
       );
     },
   );
-  return ok == true;
+  if (go != true || !context.mounted) return false;
+
+  final result = await context.push<bool>('/login');
+  return result == true ||
+      ref.read(sessionStoreProvider.notifier).isAuthenticated;
 }

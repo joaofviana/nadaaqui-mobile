@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../screens/auth/login_screen.dart';
 import '../screens/checkin/checkin_tab_screen.dart';
 import '../screens/config/config_screen.dart';
 import '../screens/feed/feed_screen.dart';
@@ -93,6 +94,10 @@ GoRouter createAppRouter() {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
         path: '/debug/config',

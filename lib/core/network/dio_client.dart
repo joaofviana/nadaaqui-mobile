@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/api/auth_api.dart';
 import '../config/api_config.dart';
 import '../session/session_store.dart';
 import 'api_error.dart';
@@ -35,11 +36,31 @@ Dio createDio(Ref ref) {
         }
         handler.next(options);
       },
-      onError: (error, handler) {
+      onError: (error, handler) async {
+        final already = error.requestOptions.extra['nadaaqui_retried'] == true;
+        if (!already &&
+            ApiConfig.useSupabase &&
+            error.response?.statusCode == 401) {
+          final session = ref.read(sessionStoreProvider);
+          final refresh = session?.refreshToken;
+          if (refresh != null && refresh.isNotEmpty) {
+            final next = await AuthApi().refresh(refresh);
+            if (next != null) {
+              await ref.read(sessionStoreProvider.notifier).setSession(next);
+              final req = error.requestOptions;
+              req.headers['Authorization'] = 'Bearer ${next.accessToken}';
+              req.extra['nadaaqui_retried'] = true;
+              try {
+                final clone = await dio.fetch<dynamic>(req);
+                return handler.resolve(clone);
+              } catch (_) {}
+            } else {
+              await ref.read(sessionStoreProvider.notifier).clear();
+            }
+          }
+        }
         try {
-          error = error.copyWith(
-            error: ApiError.fromDio(error),
-          );
+          error = error.copyWith(error: ApiError.fromDio(error));
         } catch (_) {}
         handler.next(error);
       },

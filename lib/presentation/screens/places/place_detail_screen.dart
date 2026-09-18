@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/config/api_config.dart';
 import '../../../core/location/geo_math.dart';
 import '../../../core/location/location_controller.dart';
 import '../../../core/network/api_error.dart';
@@ -269,6 +270,7 @@ class _PlaceDetailScreenState extends ConsumerState<PlaceDetailScreen> {
                             : null,
                       ),
                       const SizedBox(height: 16),
+                      if (!ApiConfig.useSupabase)
                       ExpansionTile(
                         tilePadding: EdgeInsets.zero,
                         title: Text(

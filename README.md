@@ -145,5 +145,5 @@ main.dart
 ## Notas
 
 - `google_maps_flutter` propositalmente fora do MVP scaffold.  
-- Auth: interceptor Bearer lê `SessionStore`; a tela de detalhe injeta sessão mock para smoke.  
+- Auth: e-mail + senha (Supabase Auth). Guest lê mapa/ficha; check-in exige login. Sem token mock.  
 - Stubs de `android/` / `ios/` são mínimos — rode `flutter create .` no diretório para regenerar plataformas se necessário.

@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/session/session_store.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/brand_wordmark.dart';
-import '../../widgets/guest_gate.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -57,7 +56,7 @@ class ProfileScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               FilledButton(
-                onPressed: () => ensureLoggedIn(context, ref),
+                onPressed: () => context.push('/login'),
                 child: const Text('Entrar'),
               ),
             ],
