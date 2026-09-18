@@ -4,18 +4,18 @@ import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
 
 import '../../data/repositories/places_repository.dart';
+import '../config/api_config.dart';
 import 'location_state.dart';
 
 /// GPS: pede WhenInUse **no máximo 1× por sessão**; se negado → banner + ajustes.
 ///
-/// Para smoke WireMock, a listagem/check-in ainda usa [QaGps] quando a posição
-/// real não estiver disponível — o raio continua vindo de GET /config.
+/// WireMock: fallback [QaGps] se a posição real falhar.
+/// Live Supabase: **não** inventa centro-SP — deixa lat/lng nulos.
 class LocationController extends StateNotifier<LocationUiState> {
   LocationController() : super(const LocationUiState());
 
   bool _initStarted = false;
 
-  /// Chamado ao abrir Mapa (guest OK). Não repete o dialog na mesma sessão.
   Future<void> ensurePermissionOnce() async {
     if (_initStarted) return;
     _initStarted = true;
@@ -38,7 +38,6 @@ class LocationController extends StateNotifier<LocationUiState> {
       perm = await Geolocator.requestPermission();
       state = state.copyWith(requestedThisSession: true);
     } else {
-      // Já havia decisão do SO; não pedimos de novo nesta sessão.
       state = state.copyWith(requestedThisSession: true);
     }
 
@@ -74,7 +73,10 @@ class LocationController extends StateNotifier<LocationUiState> {
         accuracyMeters: pos.accuracy,
       );
     } catch (_) {
-      // Smoke / emulador sem GPS: mantém coords QA documentadas.
+      if (ApiConfig.useSupabase) {
+        // Live: sem GPS real não inventa QA coords (check-in mentiria).
+        return;
+      }
       state = state.copyWith(
         lat: QaGps.lat,
         lng: QaGps.lng,
@@ -83,13 +85,11 @@ class LocationController extends StateNotifier<LocationUiState> {
     }
   }
 
-  /// CTA do banner: abre ajustes do app (permissão) ou de localização.
   Future<void> openSettings() async {
     if (state.status == GpsPermissionStatus.serviceDisabled) {
       await Geolocator.openLocationSettings();
       return;
     }
-    // Preferência: app_settings; fallback permission_handler.
     try {
       await AppSettings.openAppSettings(type: AppSettingsType.location);
     } catch (_) {
@@ -97,7 +97,6 @@ class LocationController extends StateNotifier<LocationUiState> {
     }
   }
 
-  /// Reavalia após o usuário voltar dos ajustes (sem novo dialog se já pedimos).
   Future<void> refreshFromOs() async {
     final serviceOn = await Geolocator.isLocationServiceEnabled();
     if (!serviceOn) {
