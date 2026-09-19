@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-enum FeedPostKind { text, photo, checkIn, review }
+enum FeedPostKind { text, photo, checkIn, review, session }
 
 class FeedPost {
   const FeedPost({
@@ -17,6 +17,9 @@ class FeedPost {
     this.stars,
     this.comments = 0,
     this.likes = 0,
+    this.liked = false,
+    this.durationLabel,
+    this.meters,
   });
 
   final String id;
@@ -32,6 +35,9 @@ class FeedPost {
   final int? stars;
   final int comments;
   final int likes;
+  final bool liked;
+  final String? durationLabel;
+  final int? meters;
 
   String get timeLabel {
     final d = DateTime.now().difference(createdAt);
@@ -39,6 +45,27 @@ class FeedPost {
     if (d.inMinutes < 60) return '${d.inMinutes}min';
     if (d.inHours < 24) return '${d.inHours}h';
     return '${d.inDays}d';
+  }
+
+  FeedPost copyWith({int? likes, bool? liked}) {
+    return FeedPost(
+      id: id,
+      kind: kind,
+      name: name,
+      handle: handle,
+      letter: letter,
+      colorIndex: colorIndex,
+      createdAt: createdAt,
+      text: text,
+      placeId: placeId,
+      placeName: placeName,
+      stars: stars,
+      comments: comments,
+      likes: likes ?? this.likes,
+      liked: liked ?? this.liked,
+      durationLabel: durationLabel,
+      meters: meters,
+    );
   }
 }
 
@@ -93,6 +120,19 @@ class FeedStore extends Notifier<List<FeedPost>> {
 
   void publish(FeedPost post) {
     state = [post, ...state];
+  }
+
+  void toggleKudos(String id) {
+    state = [
+      for (final p in state)
+        if (p.id == id)
+          p.copyWith(
+            liked: !p.liked,
+            likes: p.liked ? p.likes - 1 : p.likes + 1,
+          )
+        else
+          p,
+    ];
   }
 }
 
