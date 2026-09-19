@@ -17,7 +17,7 @@ jobs:
       - run: |
           flutter build apk --release \
             --dart-define=SUPABASE_URL=https://hanqanaaimzthlqtrmks.supabase.co \
-            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhbnFhbmFhaW16dGhscXRybWtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2OTUwNDEsImV4cCI6MjEwNTI3MTA0MX0.MaFw-ptUgUWb54NnyFoIsviJNjG-XNldgMM3vdY3ajc' }}
       - uses: actions/upload-artifact@v4
         with:
           name: nadaaqui-apk
