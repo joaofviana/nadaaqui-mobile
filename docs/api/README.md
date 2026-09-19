@@ -2,7 +2,7 @@
 
 Fonte da verdade **live:** repo `nadaaqui-backend` → `docs/contrato-rpc.md`.
 
-- App com `--dart-define=SUPABASE_URL` + `SUPABASE_ANON_KEY` → PostgREST RPCs.
-- Sem defines → WireMock em `nadaaqui-backend/mock/wiremock` (`http://10.0.2.2:8080/v1` no emulador Android).
+- Padrão: PostgREST no projeto `hanqanaaimzthlqtrmks` (precisa `SUPABASE_ANON_KEY`).
+- WireMock só com `--dart-define=USE_MOCK=true`.
 
 Não copie `openapi/nadaaqui-v1.yaml` para cá. Se o YAML e a RPC divergirem, a RPC ganha.

@@ -2,11 +2,53 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/config/api_config.dart';
+import '../../../core/location/location_controller.dart';
+import '../../../data/models/place.dart';
+import '../../../data/repositories/places_repository.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/brand_wordmark.dart';
 import '../../widgets/distance_chip.dart';
 import '../../widgets/guest_gate.dart';
+import '../../widgets/live_backend_banner.dart';
+import '../../widgets/place_photo.dart';
 import 'nearby_pool_mock.dart';
+
+final homePlacesProvider =
+    FutureProvider.autoDispose<List<Place>>((ref) async {
+  if (!ApiConfig.useSupabase) return const <Place>[];
+  final repo = ref.watch(placesRepositoryProvider);
+  final loc = ref.watch(locationControllerProvider);
+  if (loc.lat != null && loc.lng != null) {
+    final res = await repo.listNearby(lat: loc.lat!, lng: loc.lng!);
+    return res.items;
+  }
+  final res = await repo.listByCity(citySlug: 'sao-paulo');
+  return res.items;
+});
+
+NearbyPoolMock _cardFromPlace(Place p) {
+  return NearbyPoolMock(
+    name: p.name,
+    distanceMeters: p.distanceMeters ?? 0,
+    tipo: switch (p.placeType) {
+      PlaceType.pool => 'Piscina',
+      PlaceType.club => 'Clube',
+      PlaceType.beach => 'Praia',
+      _ => 'Tanque',
+    },
+    presence: PresenceLevel.vazio,
+    presenceCount: 0,
+    accessLabel: p.priceType == PriceType.free
+        ? 'Grátis'
+        : p.totalPass == TotalPass.yes
+            ? 'Total Pass'
+            : 'Pago',
+    totalPass: p.totalPass == TotalPass.yes,
+    placeId: p.id,
+    photoUrl: p.thumbnailUrl,
+  );
+}
 
 /// HOME IA — Piscinas próximas (tab Mapa / discovery). Ver HOME-IA.md.
 class HomeScreen extends ConsumerStatefulWidget {
@@ -29,9 +71,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
-    final pools = kMockNearbyPools;
-    final nearby = kMockPertoDeVoce;
-    final trends = kMockEmAlta;
+    final liveAsync = ref.watch(homePlacesProvider);
+    final useLive = ApiConfig.useSupabase;
+    List<NearbyPoolMock> pools = const [];
+    List<NearbyPoolMock> nearby = const [];
+    List<TrendMock> trends = const [];
+    if (useLive) {
+      final items = liveAsync.asData?.value ?? const <Place>[];
+      final cards = items.map(_cardFromPlace).toList();
+      pools = cards;
+      nearby = cards.length > 3 ? cards.sublist(0, 3) : cards;
+    } else if (ApiConfig.forceMock) {
+      pools = kMockNearbyPools;
+      nearby = kMockPertoDeVoce;
+      trends = kMockEmAlta;
+    }
 
     return Scaffold(
       backgroundColor: t.bg,
@@ -45,10 +99,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
+            const SliverToBoxAdapter(child: LiveBackendBanner()),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                child: BrandWordmark(height: 30),
+                child: Row(
+                  children: [
+                    const Expanded(child: BrandWordmark(height: 30)),
+                    Text(
+                      ApiConfig.useSupabase
+                          ? 'LIVE'
+                          : ApiConfig.forceMock
+                              ? 'MOCK'
+                              : 'OFF',
+                      style: TextStyle(
+                        color: ApiConfig.useSupabase ? t.accent : t.error,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             SliverToBoxAdapter(
@@ -56,13 +127,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 child: TextField(
                   readOnly: true,
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Busca em breve'),
-                      ),
-                    );
-                  },
+                  onTap: () => context.go('/mapa/explorar'),
                   decoration: InputDecoration(
                     hintText: 'Buscar piscinas, bairro ou #tag…',
                     prefixIcon: Icon(Icons.search, color: t.textMuted, size: 22),
@@ -74,6 +139,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
             ),
+            if (useLive && liveAsync.isLoading)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ),
+            if (useLive && liveAsync.hasError)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    'Falha ao falar com o Supabase live.\n${liveAsync.error}',
+                    style: TextStyle(color: t.error, height: 1.4),
+                  ),
+                ),
+              ),
+            if (useLive &&
+                liveAsync.hasValue &&
+                (liveAsync.value?.isEmpty ?? true) &&
+                !ApiConfig.missingLiveKey)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    'Live conectado, mas nenhum place publicado. Confira o seed no dashboard.',
+                    style: TextStyle(color: t.textMuted, height: 1.4),
+                  ),
+                ),
+              ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 12, 12, 8),
@@ -129,7 +224,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             SliverToBoxAdapter(
               child: SizedBox(
-                height: 210,
+                height: 268,
                 child: PageView.builder(
                   controller: _pageCtrl,
                   itemCount: pools.length,
@@ -194,6 +289,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       onTap: () {
                         if (p.placeId != null) {
                           context.go('/mapa/place/${p.placeId}');
+                        } else {
+                          context.go('/mapa/explorar');
                         }
                       },
                     );
@@ -292,11 +389,11 @@ class _NearbyPoolCard extends StatelessWidget {
     return Material(
       color: t.surface,
       borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onOpen,
         borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: t.border.withValues(alpha: 0.5)),
@@ -304,53 +401,66 @@ class _NearbyPoolCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                pool.name,
-                style: TextStyle(
-                  color: t.text,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
+              SizedBox(
+                height: 108,
+                width: double.infinity,
+                child: PlacePhoto(
+                  url: pool.photoUrl,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
                 ),
               ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  DistanceChip.fixedMeters(
-                    distanceMeters: pool.distanceMeters,
-                    checkInRadiusMeters: 150,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                child: Text(
+                  pool.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: t.text,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '· ${pool.tipo}',
-                    style: TextStyle(color: t.textMuted, fontSize: 13),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              _PresenceRow(level: pool.presence, count: pool.presenceCount),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  if (pool.covered) const _Tag(label: 'Coberta', accent: true),
-                  if (pool.heated) const _Tag(label: 'Aquecida', accent: true),
-                  _Tag(label: pool.accessLabel),
-                  if (pool.totalPass)
-                    const _Tag(label: 'Total Pass', accent: true),
-                ],
-              ),
-              if (pool.relatos != null || pool.comentarios != null) ...[
-                const Spacer(),
-                Text(
-                  [
-                    if (pool.relatos != null) '${pool.relatos} relatos',
-                    if (pool.comentarios != null)
-                      '${pool.comentarios} comentários',
-                  ].join(' · '),
-                  style: TextStyle(color: t.textMuted, fontSize: 12),
                 ),
-              ],
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        DistanceChip.fixedMeters(
+                          distanceMeters: pool.distanceMeters,
+                          checkInRadiusMeters: 150,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '· ${pool.tipo}',
+                          style: TextStyle(color: t.textMuted, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _PresenceRow(level: pool.presence, count: pool.presenceCount),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        if (pool.covered)
+                          const _Tag(label: 'Coberta', accent: true),
+                        if (pool.heated)
+                          const _Tag(label: 'Aquecida', accent: true),
+                        _Tag(label: pool.accessLabel),
+                        if (pool.totalPass)
+                          const _Tag(label: 'Total Pass', accent: true),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -379,20 +489,10 @@ class _CompactNearbyCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
+              SizedBox(
                 height: 64,
                 width: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      t.accent.withValues(alpha: 0.85),
-                      t.mapBg,
-                      t.accent.withValues(alpha: 0.55),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
+                child: PlacePhoto(url: pool.photoUrl),
               ),
               Expanded(
                 child: Padding(

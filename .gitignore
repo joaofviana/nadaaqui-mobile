@@ -20,3 +20,4 @@ dist/
 .env
 .env.*
 *.secrets
+dart_defines.json

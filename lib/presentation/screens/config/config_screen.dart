@@ -56,7 +56,17 @@ class ConfigScreen extends ConsumerWidget {
         data: (cfg) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            Text(
+              ApiConfig.useSupabase
+                  ? 'LIVE ${ApiConfig.projectRef}'
+                  : ApiConfig.forceMock
+                      ? 'MOCK WireMock'
+                      : 'OFF — falta SUPABASE_ANON_KEY',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
             Text('API: ${ApiConfig.baseUrl}',
+                style: Theme.of(context).textTheme.bodySmall),
+            Text(ApiConfig.dashboardUrl,
                 style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 12),
             _tile('checkInRadiusMeters', '${cfg.checkInRadiusMeters}'),

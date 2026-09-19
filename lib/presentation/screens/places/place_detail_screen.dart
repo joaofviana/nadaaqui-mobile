@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -19,6 +20,7 @@ import '../../theme/app_colors.dart';
 import '../../widgets/distance_chip.dart';
 import '../../widgets/guest_gate.dart';
 import '../../widgets/place_badges.dart';
+import '../../widgets/place_photo.dart';
 
 final placeDetailProvider =
     FutureProvider.autoDispose.family<PlaceDetail, String>((ref, id) async {
@@ -161,7 +163,28 @@ class _PlaceDetailScreenState extends ConsumerState<PlaceDetailScreen> {
 
           return CustomScrollView(
             slivers: [
-              SliverToBoxAdapter(child: _CompactHero(onBack: () => context.pop())),
+              SliverToBoxAdapter(
+                child: _CompactHero(
+                  photoUrl: place.photos.isNotEmpty
+                      ? place.photos.first
+                      : place.thumbnailUrl,
+                  onBack: () => context.pop(),
+                  onShare: () async {
+                    final uri =
+                        'https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}';
+                    await Clipboard.setData(ClipboardData(
+                      text: '${place.name}\n$uri',
+                    ));
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Nome e link do Maps copiados'),
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
@@ -364,42 +387,33 @@ class _PlaceDetailScreenState extends ConsumerState<PlaceDetailScreen> {
 }
 
 class _CompactHero extends StatelessWidget {
-  const _CompactHero({required this.onBack});
+  const _CompactHero({
+    required this.onBack,
+    required this.onShare,
+    this.photoUrl,
+  });
   final VoidCallback onBack;
+  final VoidCallback onShare;
+  final String? photoUrl;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 200,
+      height: 220,
       child: Stack(
         fit: StackFit.expand,
         children: [
+          PlacePhoto(url: photoUrl),
           const DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xFF5EEAD4),
-                  Color(0xFF0D9488),
-                  Color(0xFF115E59),
+                  Color(0x66000000),
+                  Color(0x00000000),
+                  Color(0x99000000),
                 ],
-              ),
-            ),
-          ),
-          Positioned(
-            left: 24,
-            right: 24,
-            top: 56,
-            bottom: 36,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                gradient: const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFF67E8F9), Color(0xFF0891B2)],
-                ),
               ),
             ),
           ),
@@ -410,7 +424,7 @@ class _CompactHero extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _RoundIcon(icon: Icons.arrow_back_ios_new, onTap: onBack),
-                  _RoundIcon(icon: Icons.ios_share, onTap: () {}),
+                  _RoundIcon(icon: Icons.ios_share, onTap: onShare),
                 ],
               ),
             ),
