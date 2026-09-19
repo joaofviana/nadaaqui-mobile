@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,7 +12,6 @@ import '../../providers/swim_log_store.dart';
 import '../../theme/app_colors.dart';
 import '../compose/compose_screen.dart';
 
-/// Tela 04 — Check-in feito + cronômetro da sessão.
 class CheckinDoneScreen extends ConsumerStatefulWidget {
   const CheckinDoneScreen({super.key});
 
@@ -47,7 +47,7 @@ class _CheckinDoneScreenState extends ConsumerState<CheckinDoneScreen> {
   }
 
   Future<void> _finish(ActiveCheckInUi active) async {
-    final started = active.checkIn.createdAt ?? DateTime.now();
+    final started = active.checkIn.startedAt;
     final ended = DateTime.now();
     final duration = ended.difference(started);
     final raw = _meters.text.trim();
@@ -95,10 +95,8 @@ class _CheckinDoneScreenState extends ConsumerState<CheckinDoneScreen> {
   @override
   Widget build(BuildContext context) {
     final active = ref.watch(activeCheckInProvider);
-    if (active == null) {
-      return const SizedBox.shrink();
-    }
-    final started = active.checkIn.createdAt ?? DateTime.now();
+    if (active == null) return const SizedBox.shrink();
+    final started = active.checkIn.startedAt;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
