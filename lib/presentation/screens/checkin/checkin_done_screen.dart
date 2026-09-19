@@ -89,22 +89,24 @@ class _CheckinDoneScreenState extends ConsumerState<CheckinDoneScreen> {
         : 'Você';
     final letter = name.characters.first.toUpperCase();
     final handle = '@${name.toLowerCase().replaceAll(RegExp(r'\s+'), '')}';
-    ref.read(feedStoreProvider.notifier).publish(
-          FeedPost(
-            id: 'session-${session.id}',
-            kind: FeedPostKind.session,
-            name: name,
-            handle: handle,
-            letter: letter,
-            colorIndex: 0,
-            createdAt: ended,
-            text: 'Nadou ${session.statsLabel} em ${active.placeName}',
-            placeId: active.checkIn.placeId,
-            placeName: active.placeName,
-            durationLabel: session.durationLabel,
-            meters: meters,
-          ),
-        );
+    try {
+      await ref.read(feedStoreProvider.notifier).publish(
+            FeedPost(
+              id: 'session-${session.id}',
+              kind: FeedPostKind.session,
+              name: name,
+              handle: handle,
+              letter: letter,
+              colorIndex: 0,
+              createdAt: ended,
+              text: 'Nadou ${session.statsLabel} em ${active.placeName}',
+              placeId: active.checkIn.placeId,
+              placeName: active.placeName,
+              durationLabel: session.durationLabel,
+              meters: meters,
+            ),
+          );
+    } catch (_) {}
 
     ref.read(activeCheckInProvider.notifier).state = null;
     if (!mounted) return;
@@ -218,36 +220,6 @@ class _CheckinDoneScreenState extends ConsumerState<CheckinDoneScreen> {
                     child: const Text('Encerrar nado'),
                   ),
                   const SizedBox(height: 20),
-                  Container(
-                    decoration: const BoxDecoration(
-                      border: Border(
-                        top: BorderSide(color: AppColors.hairline),
-                        bottom: BorderSide(color: AppColors.hairline),
-                      ),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            'Mostrar meu perfil',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.text,
-                            ),
-                          ),
-                        ),
-                        Switch(
-                          value: active.showProfile,
-                          onChanged: (v) {
-                            ref.read(activeCheckInProvider.notifier).state =
-                                active.copyWith(showProfile: v);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
                   _TextLink(
                     label: 'Ver quem está aqui',
                     onTap: () =>

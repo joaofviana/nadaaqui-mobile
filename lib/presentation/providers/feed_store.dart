@@ -1,4 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/config/api_config.dart';
+import '../../data/api/social_api.dart';
 
 enum FeedPostKind { text, photo, checkIn, review, session }
 
@@ -69,6 +74,31 @@ class FeedPost {
   }
 }
 
+class FeedUiState {
+  const FeedUiState({
+    this.posts = const [],
+    this.loading = false,
+    this.error,
+  });
+
+  final List<FeedPost> posts;
+  final bool loading;
+  final String? error;
+
+  FeedUiState copyWith({
+    List<FeedPost>? posts,
+    bool? loading,
+    String? error,
+    bool clearError = false,
+  }) {
+    return FeedUiState(
+      posts: posts ?? this.posts,
+      loading: loading ?? this.loading,
+      error: clearError ? null : (error ?? this.error),
+    );
+  }
+}
+
 const _seedCreated = Duration(hours: 2);
 
 final _seed = <FeedPost>[
@@ -114,27 +144,84 @@ final _seed = <FeedPost>[
   ),
 ];
 
-class FeedStore extends Notifier<List<FeedPost>> {
-  @override
-  List<FeedPost> build() => List<FeedPost>.from(_seed);
+String _kindWire(FeedPostKind kind) => switch (kind) {
+      FeedPostKind.review => 'review',
+      FeedPostKind.checkIn => 'check_in',
+      FeedPostKind.session => 'session',
+      FeedPostKind.photo => 'photo',
+      FeedPostKind.text => 'text',
+    };
 
-  void publish(FeedPost post) {
-    state = [post, ...state];
+class FeedStore extends Notifier<FeedUiState> {
+  @override
+  FeedUiState build() {
+    if (ApiConfig.useSupabase) {
+      unawaited(reload());
+      return const FeedUiState(loading: true);
+    }
+    if (ApiConfig.forceMock) {
+      return FeedUiState(posts: List<FeedPost>.from(_seed));
+    }
+    return const FeedUiState();
   }
 
-  void toggleKudos(String id) {
-    state = [
-      for (final p in state)
-        if (p.id == id)
-          p.copyWith(
-            liked: !p.liked,
-            likes: p.liked ? p.likes - 1 : p.likes + 1,
-          )
-        else
-          p,
-    ];
+  Future<void> reload() async {
+    try {
+      final posts = await ref.read(socialApiProvider).listFeed();
+      state = FeedUiState(posts: posts);
+    } catch (_) {
+      state = const FeedUiState(
+        error: 'Não foi possível carregar o feed. Tente de novo mais tarde.',
+      );
+    }
+  }
+
+  Future<void> publish(FeedPost post) async {
+    if (ApiConfig.useSupabase) {
+      final created = await ref.read(socialApiProvider).createPost(
+            body: post.text,
+            kind: _kindWire(post.kind),
+            placeId: post.placeId,
+            stars: post.stars,
+          );
+      state = state.copyWith(
+        posts: [created, ...state.posts],
+        loading: false,
+        clearError: true,
+      );
+      return;
+    }
+    state = state.copyWith(posts: [post, ...state.posts]);
+  }
+
+  Future<void> toggleKudos(String id) async {
+    if (ApiConfig.useSupabase) {
+      final result = await ref.read(socialApiProvider).toggleKudo(id);
+      state = state.copyWith(
+        posts: [
+          for (final p in state.posts)
+            if (p.id == id)
+              p.copyWith(liked: result.liked, likes: result.likes)
+            else
+              p,
+        ],
+      );
+      return;
+    }
+    state = state.copyWith(
+      posts: [
+        for (final p in state.posts)
+          if (p.id == id)
+            p.copyWith(
+              liked: !p.liked,
+              likes: p.liked ? p.likes - 1 : p.likes + 1,
+            )
+          else
+            p,
+      ],
+    );
   }
 }
 
 final feedStoreProvider =
-    NotifierProvider<FeedStore, List<FeedPost>>(FeedStore.new);
+    NotifierProvider<FeedStore, FeedUiState>(FeedStore.new);

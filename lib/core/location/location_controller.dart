@@ -20,28 +20,32 @@ class LocationController extends StateNotifier<LocationUiState> {
     if (_initStarted) return;
     _initStarted = true;
 
-    final serviceOn = await Geolocator.isLocationServiceEnabled();
-    if (!serviceOn) {
-      state = state.copyWith(
-        status: GpsPermissionStatus.serviceDisabled,
-        requestedThisSession: true,
-      );
-      return;
-    }
-
-    var perm = await Geolocator.checkPermission();
-    if (perm == LocationPermission.denied) {
-      if (state.requestedThisSession) {
-        state = state.copyWith(status: GpsPermissionStatus.denied);
+    try {
+      final serviceOn = await Geolocator.isLocationServiceEnabled();
+      if (!serviceOn) {
+        state = state.copyWith(
+          status: GpsPermissionStatus.serviceDisabled,
+          requestedThisSession: true,
+        );
         return;
       }
-      perm = await Geolocator.requestPermission();
-      state = state.copyWith(requestedThisSession: true);
-    } else {
-      state = state.copyWith(requestedThisSession: true);
-    }
 
-    await _applyPermission(perm);
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        if (state.requestedThisSession) {
+          state = state.copyWith(status: GpsPermissionStatus.denied);
+          return;
+        }
+        perm = await Geolocator.requestPermission();
+        state = state.copyWith(requestedThisSession: true);
+      } else {
+        state = state.copyWith(requestedThisSession: true);
+      }
+
+      await _applyPermission(perm);
+    } catch (_) {
+      // Plugin ausente (testes) ou falha do SO: não pede GPS em loop.
+    }
   }
 
   Future<void> _applyPermission(LocationPermission perm) async {

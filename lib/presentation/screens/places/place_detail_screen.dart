@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -201,6 +202,30 @@ class _PlaceDetailScreenState extends ConsumerState<PlaceDetailScreen> {
                           height: 1.15,
                         ),
                       ),
+                      if (place.address != null &&
+                          place.address!.trim().isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          place.address!.trim(),
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 14,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
+                      if (place.description != null &&
+                          place.description!.trim().isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          place.description!.trim(),
+                          style: const TextStyle(
+                            color: AppColors.text,
+                            fontSize: 14,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 10),
                       Wrap(
                         spacing: 8,
@@ -307,7 +332,8 @@ class _PlaceDetailScreenState extends ConsumerState<PlaceDetailScreen> {
                             : null,
                       ),
                       const SizedBox(height: 16),
-                      ExpansionTile(
+                      if (kDebugMode)
+                        ExpansionTile(
                         tilePadding: EdgeInsets.zero,
                         title: Text(
                           'QA WireMock',

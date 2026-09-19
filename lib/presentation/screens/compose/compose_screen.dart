@@ -119,7 +119,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
     return trimmed.characters.first.toUpperCase();
   }
 
-  void _publish() {
+  Future<void> _publish() async {
     if (!_canPublish) return;
     final session = ref.read(sessionStoreProvider);
     final raw = session?.user.displayName.trim() ?? '';
@@ -131,21 +131,31 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
       ComposeKind.checkIn => FeedPostKind.checkIn,
       ComposeKind.post => FeedPostKind.text,
     };
-    ref.read(feedStoreProvider.notifier).publish(
-          FeedPost(
-            id: 'local-${DateTime.now().millisecondsSinceEpoch}',
-            kind: kind,
-            name: name,
-            handle: handle,
-            letter: letter,
-            colorIndex: 0,
-            createdAt: DateTime.now(),
-            text: _text.text.trim(),
-            placeId: widget.placeId,
-            placeName: widget.placeName,
-            stars: widget.kind == ComposeKind.review ? _stars : null,
-          ),
-        );
+    try {
+      await ref.read(feedStoreProvider.notifier).publish(
+            FeedPost(
+              id: 'local-${DateTime.now().millisecondsSinceEpoch}',
+              kind: kind,
+              name: name,
+              handle: handle,
+              letter: letter,
+              colorIndex: 0,
+              createdAt: DateTime.now(),
+              text: _text.text.trim(),
+              placeId: widget.placeId,
+              placeName: widget.placeName,
+              stars: widget.kind == ComposeKind.review ? _stars : null,
+            ),
+          );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível publicar. Tente de novo.'),
+        ),
+      );
+      return;
+    }
     if (!mounted) return;
     context.go('/feed');
   }
