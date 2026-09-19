@@ -72,10 +72,11 @@ class AuthApi {
         );
         final data = res.data ?? const <String, dynamic>{};
         if (data['access_token'] == null) {
+          // Email confirmation ativada - conta criada mas precisa confirmar email
           throw const ApiError(
             code: ApiErrorCode.unauthorized,
             message:
-                'Conta criada. Confirme o e-mail se o projeto exigir, depois entre.',
+                'Conta criada! Confirme seu e-mail clicando no link que enviamos.',
           );
         }
         return _sessionFromGotrue(data);
@@ -111,6 +112,54 @@ class AuthApi {
       );
     } on DioException catch (e) {
       throw _mapAuthError(e);
+    }
+  }
+
+  /// Renovar access token usando refresh token.
+  Future<AuthSession> refreshSession({required String refreshToken}) async {
+    try {
+      if (_live) {
+        final res = await _dio.post<Map<String, dynamic>>(
+          '$_authRoot/token?grant_type=refresh_token',
+          data: {'refresh_token': refreshToken},
+          options: _anonOptions,
+        );
+        return _sessionFromGotrue(res.data ?? const {});
+      }
+      final res = await _dio.post<Map<String, dynamic>>(
+        '${ApiConfig.apiBaseUrl}/auth/refresh',
+        data: {'refreshToken': refreshToken},
+      );
+      return AuthSession.fromJson(res.data ?? const {});
+    } on DioException catch (e) {
+      throw _mapAuthError(e);
+    }
+  }
+
+  /// Logout — revoga tokens no servidor.
+  Future<void> logout({required String accessToken}) async {
+    try {
+      if (_live) {
+        await _dio.post<void>(
+          '$_authRoot/logout',
+          options: Options(
+            headers: {
+              'apikey': ApiConfig.supabaseAnonKey,
+              'Authorization': 'Bearer $accessToken',
+            },
+          ),
+        );
+        return;
+      }
+      await _dio.post<void>(
+        '${ApiConfig.apiBaseUrl}/auth/logout',
+        options: Options(
+          headers: {'Authorization': 'Bearer $accessToken'},
+        ),
+      );
+    } on DioException catch (e) {
+      // Logout não deve falhar mesmo se o servidor responder erro
+      // O app deve limpar a session local de qualquer forma
     }
   }
 
@@ -170,6 +219,12 @@ class AuthApi {
     }
     if (l.contains('password')) {
       return 'Senha fraca. Use pelo menos 6 caracteres.';
+    }
+    if (l.contains('email not confirmed') || l.contains('email_not_confirmed')) {
+      return 'Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada.';
+    }
+    if (l.contains('invalid refresh') || l.contains('refresh_token')) {
+      return 'Sessão expirou. Entre novamente.';
     }
     return 'Não foi possível entrar. Tente de novo.';
   }
