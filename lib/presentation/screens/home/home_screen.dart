@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/config/api_config.dart';
 import '../../../core/location/location_controller.dart';
 import '../../../data/models/place.dart';
+import '../../../data/repositories/config_repository.dart';
 import '../../../data/repositories/places_repository.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/brand_wordmark.dart';
@@ -27,18 +29,20 @@ final homePlacesProvider =
   return res.items;
 });
 
-NearbyPoolMock _cardFromPlace(Place p) {
+NearbyPoolMock _cardFromPlace(
+  Place p, {
+  required int? checkInRadiusMeters,
+  required bool hasGpsFix,
+}) {
   return NearbyPoolMock(
     name: p.name,
-    distanceMeters: p.distanceMeters ?? 0,
+    distanceMeters: hasGpsFix ? p.distanceMeters : null,
     tipo: switch (p.placeType) {
       PlaceType.pool => 'Piscina',
       PlaceType.club => 'Clube',
       PlaceType.beach => 'Praia',
       _ => 'Tanque',
     },
-    presence: PresenceLevel.vazio,
-    presenceCount: 0,
     accessLabel: p.priceType == PriceType.free
         ? 'Grátis'
         : p.totalPass == TotalPass.yes
@@ -47,6 +51,8 @@ NearbyPoolMock _cardFromPlace(Place p) {
     totalPass: p.totalPass == TotalPass.yes,
     placeId: p.id,
     photoUrl: p.thumbnailUrl,
+    checkInRadiusMeters: checkInRadiusMeters,
+    showPresence: false,
   );
 }
 
@@ -63,6 +69,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _page = 0;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(locationControllerProvider.notifier).ensurePermissionOnce();
+    });
+  }
+
+  @override
   void dispose() {
     _pageCtrl.dispose();
     super.dispose();
@@ -72,13 +86,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
     final liveAsync = ref.watch(homePlacesProvider);
+    final loc = ref.watch(locationControllerProvider);
+    final cfgAsync = ref.watch(remoteConfigProvider);
+    final radius = cfgAsync.asData?.value.checkInRadiusMeters;
+    final hasGpsFix = loc.isGranted && loc.lat != null && loc.lng != null;
     final useLive = ApiConfig.useSupabase;
     List<NearbyPoolMock> pools = const [];
     List<NearbyPoolMock> nearby = const [];
     List<TrendMock> trends = const [];
     if (useLive) {
       final items = liveAsync.asData?.value ?? const <Place>[];
-      final cards = items.map(_cardFromPlace).toList();
+      final cards = items
+          .map(
+            (p) => _cardFromPlace(
+              p,
+              checkInRadiusMeters: radius,
+              hasGpsFix: hasGpsFix,
+            ),
+          )
+          .toList();
       pools = cards;
       nearby = cards.length > 3 ? cards.sublist(0, 3) : cards;
     } else if (ApiConfig.forceMock) {
@@ -106,18 +132,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: Row(
                   children: [
                     const Expanded(child: BrandWordmark(height: 30)),
-                    Text(
-                      ApiConfig.useSupabase
-                          ? 'LIVE'
-                          : ApiConfig.forceMock
-                              ? 'MOCK'
-                              : 'OFF',
-                      style: TextStyle(
-                        color: ApiConfig.useSupabase ? t.accent : t.error,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
+                    if (kDebugMode)
+                      Text(
+                        ApiConfig.useSupabase
+                            ? 'LIVE'
+                            : ApiConfig.forceMock
+                                ? 'MOCK'
+                                : 'OFF',
+                        style: TextStyle(
+                          color: ApiConfig.useSupabase ? t.accent : t.error,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -298,77 +325,79 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-                child: Text(
-                  'Em alta',
-                  style: TextStyle(
-                    color: t.text,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
+            if (trends.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                  child: Text(
+                    'Em alta',
+                    style: TextStyle(
+                      color: t.text,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ),
-            ),
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, i) {
-                  final row = trends[i];
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(color: t.hairline),
+            if (trends.isNotEmpty)
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, i) {
+                    final row = trends[i];
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 14,
                       ),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          width: 36,
-                          child: Text(
-                            '${row.rank}',
-                            style: TextStyle(
-                              color: t.textMuted,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(color: t.hairline),
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            width: 36,
+                            child: Text(
+                              '${row.rank}',
+                              style: TextStyle(
+                                color: t.textMuted,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
-                        ),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                row.keyword,
-                                style: TextStyle(
-                                  color: t.text,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  row.keyword,
+                                  style: TextStyle(
+                                    color: t.text,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                row.subtitle,
-                                style: TextStyle(
-                                  color: t.textMuted,
-                                  fontSize: 13,
+                                const SizedBox(height: 2),
+                                Text(
+                                  row.subtitle,
+                                  style: TextStyle(
+                                    color: t.textMuted,
+                                    fontSize: 13,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                childCount: trends.length,
+                        ],
+                      ),
+                    );
+                  },
+                  childCount: trends.length,
+                ),
               ),
-            ),
             const SliverToBoxAdapter(child: SizedBox(height: 88)),
           ],
         ),
@@ -431,10 +460,14 @@ class _NearbyPoolCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        DistanceChip.fixedMeters(
-                          distanceMeters: pool.distanceMeters,
-                          checkInRadiusMeters: 150,
-                        ),
+                        if (pool.distanceMeters == null ||
+                            pool.checkInRadiusMeters == null)
+                          const DistanceChip.unavailable()
+                        else
+                          DistanceChip.fixedMeters(
+                            distanceMeters: pool.distanceMeters!,
+                            checkInRadiusMeters: pool.checkInRadiusMeters!,
+                          ),
                         const SizedBox(width: 8),
                         Text(
                           '· ${pool.tipo}',
@@ -442,8 +475,13 @@ class _NearbyPoolCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    _PresenceRow(level: pool.presence, count: pool.presenceCount),
+                    if (pool.showPresence && pool.presence != null) ...[
+                      const SizedBox(height: 8),
+                      _PresenceRow(
+                        level: pool.presence!,
+                        count: pool.presenceCount,
+                      ),
+                    ],
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 6,
@@ -513,13 +551,19 @@ class _CompactNearbyCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${formatDistanceMeters(pool.distanceMeters)} · ${pool.tipo}',
+                        [
+                          if (pool.distanceMeters != null)
+                            formatDistanceMeters(pool.distanceMeters!),
+                          pool.tipo,
+                        ].join(' · '),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(color: t.textMuted, fontSize: 11),
                       ),
                       Text(
-                        '${pool.presence.label} · ${pool.accessLabel}',
+                        pool.showPresence && pool.presence != null
+                            ? '${pool.presence!.label} · ${pool.accessLabel}'
+                            : pool.accessLabel,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(color: t.textMuted, fontSize: 11),

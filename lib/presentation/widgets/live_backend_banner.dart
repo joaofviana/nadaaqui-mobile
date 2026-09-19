@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../core/config/api_config.dart';
 import '../theme/app_colors.dart';
 
-/// Sem anon key o app NÃO cai no WireMock. Mostra como ligar o live.
+/// Sem anon key o app NÃO cai no WireMock. Copy humana, sem comando de build.
 class LiveBackendBanner extends StatelessWidget {
   const LiveBackendBanner({super.key});
 
@@ -20,7 +19,7 @@ class LiveBackendBanner extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Backend live desligado',
+              'Não foi possível falar com o NadaAqui',
               style: TextStyle(
                 color: t.error,
                 fontWeight: FontWeight.w800,
@@ -29,30 +28,8 @@ class LiveBackendBanner extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'O app não usa mais WireMock por padrão. Cole a anon public em dart_defines.json e rode:\n'
-              'flutter run --dart-define-from-file=dart_defines.json',
+              'Não conseguimos alcançar o servidor agora. Tente de novo mais tarde.',
               style: TextStyle(color: t.text, fontSize: 12, height: 1.35),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              ApiConfig.dashboardUrl,
-              style: TextStyle(color: t.accent, fontSize: 11),
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () async {
-                  await Clipboard.setData(
-                    const ClipboardData(text: ApiConfig.dashboardUrl),
-                  );
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Link do dashboard copiado')),
-                    );
-                  }
-                },
-                child: const Text('Copiar dashboard'),
-              ),
             ),
           ],
         ),

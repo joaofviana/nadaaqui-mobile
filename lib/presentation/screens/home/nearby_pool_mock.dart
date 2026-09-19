@@ -14,10 +14,10 @@ enum PresenceLevel {
 class NearbyPoolMock {
   const NearbyPoolMock({
     required this.name,
-    required this.distanceMeters,
+    this.distanceMeters,
     required this.tipo,
-    required this.presence,
-    required this.presenceCount,
+    this.presence,
+    this.presenceCount = 0,
     required this.accessLabel,
     this.covered = false,
     this.heated = false,
@@ -26,12 +26,14 @@ class NearbyPoolMock {
     this.comentarios,
     this.placeId,
     this.photoUrl,
+    this.checkInRadiusMeters = 150,
+    this.showPresence = true,
   });
 
   final String name;
-  final int distanceMeters;
+  final int? distanceMeters;
   final String tipo;
-  final PresenceLevel presence;
+  final PresenceLevel? presence;
   final int presenceCount;
   final String accessLabel;
   final bool covered;
@@ -41,6 +43,8 @@ class NearbyPoolMock {
   final int? comentarios;
   final String? placeId;
   final String? photoUrl;
+  final int? checkInRadiusMeters;
+  final bool showPresence;
 }
 
 class TrendMock {

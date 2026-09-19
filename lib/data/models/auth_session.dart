@@ -20,8 +20,8 @@ class AuthSession extends Equatable {
     return AuthSession(
       accessToken: json['accessToken'] as String,
       refreshToken: json['refreshToken'] as String,
-      expiresIn: json['expiresIn'] as int,
-      user: User.fromJson(json['user'] as Map<String, dynamic>),
+      expiresIn: (json['expiresIn'] as num).toInt(),
+      user: User.fromJson(Map<String, dynamic>.from(json['user'] as Map)),
     );
   }
 

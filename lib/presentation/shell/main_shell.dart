@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../providers/active_checkin_provider.dart';
 import '../theme/app_colors.dart';
 
 /// Bottom nav 5: Mapa | Feed | Check-in | Notificações | Perfil (HOME-IA).
-class MainShell extends StatelessWidget {
+class MainShell extends ConsumerWidget {
   const MainShell({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
@@ -20,7 +22,8 @@ class MainShell extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(sessionHydrationProvider);
     final t = NadaTokens.of(context);
     final idx = navigationShell.currentIndex;
     return Scaffold(

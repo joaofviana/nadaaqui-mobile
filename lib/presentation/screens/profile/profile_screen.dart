@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/session/session_store.dart';
 import '../../providers/swim_log_store.dart';
@@ -136,15 +135,6 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-            const Divider(),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.settings_outlined, color: AppColors.muted),
-              title: const Text('Config remota'),
-              subtitle: const Text('GET /config — raio de check-in'),
-              trailing: const Icon(Icons.chevron_right, color: AppColors.muted),
-              onTap: () => context.go('/perfil/config'),
-            ),
           ],
         ),
       ),

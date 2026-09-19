@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/brand_wordmark.dart';
 
-/// Stub Notificações (HOME-IA tab 4) — badge only; list TBD.
+/// Aba Notificações — vazia até chegar item de verdade.
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
 
@@ -28,11 +28,6 @@ class NotificationsScreen extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Em breve: check-ins próximos, respostas e avisos da comunidade.',
-                style: TextStyle(color: t.textMuted, height: 1.4),
-              ),
               const SizedBox(height: 24),
               Container(
                 width: double.infinity,
@@ -43,7 +38,7 @@ class NotificationsScreen extends StatelessWidget {
                   border: Border.all(color: t.border),
                 ),
                 child: Text(
-                  'Nenhuma notificação ainda (stub UI).',
+                  'Nenhuma notificação por enquanto.',
                   style: TextStyle(color: t.textMuted),
                 ),
               ),

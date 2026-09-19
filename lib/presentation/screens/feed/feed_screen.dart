@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../providers/feed_store.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/brand_wordmark.dart';
+import '../../widgets/guest_gate.dart';
 import '../compose/compose_screen.dart';
 
 class FeedScreen extends ConsumerWidget {
@@ -13,7 +14,8 @@ class FeedScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = NadaTokens.of(context);
-    final posts = ref.watch(feedStoreProvider);
+    final feed = ref.watch(feedStoreProvider);
+    final posts = feed.posts;
     return Scaffold(
       backgroundColor: t.bg,
       floatingActionButton: FloatingActionButton(
@@ -40,10 +42,25 @@ class FeedScreen extends ConsumerWidget {
           ),
           const Divider(height: 1),
           Expanded(
-            child: ListView.builder(
-              itemCount: posts.length,
-              itemBuilder: (context, i) => _FeedPostTile(post: posts[i]),
-            ),
+            child: feed.loading
+                ? const Center(child: CircularProgressIndicator())
+                : posts.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Text(
+                            feed.error ??
+                                'Nenhuma publicação por enquanto.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: t.textMuted, height: 1.4),
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: posts.length,
+                        itemBuilder: (context, i) =>
+                            _FeedPostTile(post: posts[i]),
+                      ),
           ),
         ],
       ),
@@ -292,7 +309,20 @@ class _Actions extends ConsumerWidget {
         ),
         const SizedBox(width: 20),
         InkWell(
-          onTap: () => ref.read(feedStoreProvider.notifier).toggleKudos(post.id),
+          onTap: () async {
+            final ok = await ensureLoggedIn(context, ref);
+            if (!ok || !context.mounted) return;
+            try {
+              await ref.read(feedStoreProvider.notifier).toggleKudos(post.id);
+            } catch (_) {
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Não foi possível curtir agora.'),
+                ),
+              );
+            }
+          },
           child: Row(
             children: [
               Icon(
