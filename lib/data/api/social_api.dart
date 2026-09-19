@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/config/api_config.dart';
 import '../../core/network/dio_client.dart';
 import '../../presentation/providers/feed_store.dart';
 import '../../presentation/providers/swim_log_store.dart';
@@ -122,12 +121,13 @@ class SocialApi {
       _ => FeedPostKind.text,
     };
     final dur = (e['durationSeconds'] as num?)?.toInt();
+    final letter = name.trim().isEmpty ? 'N' : name.trim()[0].toUpperCase();
     return FeedPost(
       id: e['id'] as String? ?? 'p',
       kind: kind,
       name: name,
       handle: '@${name.toLowerCase().replaceAll(RegExp(r'\s+'), '')}',
-      letter: name.isEmpty ? 'N' : name.characters.first.toUpperCase(),
+      letter: letter,
       colorIndex: 0,
       createdAt: DateTime.tryParse(e['createdAt'] as String? ?? '') ?? DateTime.now(),
       text: (e['body'] as String?) ?? '',
