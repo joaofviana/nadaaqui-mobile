@@ -1,17 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/network/dio_client.dart';
 import '../../../core/session/session_store.dart';
+import '../../../data/api/auth_api.dart';
 import '../../providers/swim_log_store.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/brand_wordmark.dart';
 import '../../widgets/guest_gate.dart';
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  bool _loggingOut = false;
+
+  Future<void> _logout() async {
+    if (_loggingOut) return;
+    setState(() => _loggingOut = true);
+
+    try {
+      final session = ref.read(sessionStoreProvider);
+      if (session != null) {
+        final api = AuthApi(ref.read(dioProvider));
+        await api.logout(accessToken: session.accessToken);
+      }
+    } catch (_) {
+      // Logout local de qualquer forma mesmo se falhar no servidor
+    } finally {
+      ref.read(sessionStoreProvider.notifier).clear();
+      if (mounted) setState(() => _loggingOut = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final session = ref.watch(sessionStoreProvider);
     final user = session?.user;
     final log = ref.watch(swimLogStoreProvider);
@@ -40,9 +67,14 @@ class ProfileScreen extends ConsumerWidget {
               Text(user.email, style: const TextStyle(color: AppColors.muted)),
               const SizedBox(height: 8),
               TextButton(
-                onPressed: () =>
-                    ref.read(sessionStoreProvider.notifier).clear(),
-                child: const Text('Sair', style: TextStyle(color: AppColors.muted)),
+                onPressed: _loggingOut ? null : _logout,
+                child: _loggingOut
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Sair', style: TextStyle(color: AppColors.muted)),
               ),
             ] else ...[
               const Text(
