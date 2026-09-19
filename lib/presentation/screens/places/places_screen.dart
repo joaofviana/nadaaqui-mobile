@@ -83,6 +83,7 @@ class PlacesScreen extends ConsumerStatefulWidget {
 
 class _PlacesScreenState extends ConsumerState<PlacesScreen> {
   final _bairroCtrl = TextEditingController();
+  final _searchFocus = FocusNode();
 
   @override
   void initState() {
@@ -95,6 +96,7 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
   @override
   void dispose() {
     _bairroCtrl.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -122,7 +124,7 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
                   const Expanded(child: BrandWordmark(height: 28)),
                   IconButton(
                     tooltip: 'Buscar',
-                    onPressed: () {},
+                    onPressed: () => _searchFocus.requestFocus(),
                     icon: const Icon(Icons.search, color: AppColors.text),
                   ),
                 ],
@@ -130,9 +132,9 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
             ),
           ),
           const GpsDeniedBanner(),
-          if (showGpsFallback) ...[
+          if (showGpsFallback)
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -144,39 +146,32 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: TextField(
-                controller: _bairroCtrl,
-                decoration: InputDecoration(
-                  hintText: 'Digite um bairro…',
-                  hintStyle: const TextStyle(color: AppColors.muted),
-                  prefixIcon:
-                      const Icon(Icons.search, color: AppColors.muted, size: 20),
-                  filled: true,
-                  fillColor: const Color(0xFFF7F9F9),
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(999),
-                    borderSide: const BorderSide(color: AppColors.border),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(999),
-                    borderSide: const BorderSide(color: AppColors.border),
-                  ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: TextField(
+              controller: _bairroCtrl,
+              focusNode: _searchFocus,
+              decoration: InputDecoration(
+                hintText: 'Buscar piscina ou bairro…',
+                hintStyle: const TextStyle(color: AppColors.muted),
+                prefixIcon:
+                    const Icon(Icons.search, color: AppColors.muted, size: 20),
+                filled: true,
+                fillColor: const Color(0xFFF7F9F9),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(999),
+                  borderSide: const BorderSide(color: AppColors.border),
                 ),
-                onSubmitted: (_) {
-                  // Sprint 1: UI only — busca por bairro chega com API depois.
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Busca por bairro em breve'),
-                    ),
-                  );
-                },
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(999),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
               ),
+              onChanged: (_) => setState(() {}),
             ),
-          ],
+          ),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
@@ -214,7 +209,12 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(child: Text(extractApiError(e).message)),
               data: (list) {
-                final items = list.items;
+                final q = _bairroCtrl.text.trim().toLowerCase();
+                final items = q.isEmpty
+                    ? list.items
+                    : list.items
+                        .where((p) => p.name.toLowerCase().contains(q))
+                        .toList();
                 if (items.isEmpty) {
                   return const Center(child: Text('Nenhum local'));
                 }

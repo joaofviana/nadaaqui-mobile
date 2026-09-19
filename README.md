@@ -1,20 +1,30 @@
 # NadaAqui — client mobile (Flutter)
 
-MVP Flutter que consome Config, Places e Check-in via **Supabase PostgREST RPCs**
-(ou WireMock `/v1` como fallback).
+MVP Flutter que consome **Supabase live** (`hanqanaaimzthlqtrmks`, sa-east-1).
+WireMock **não** é mais o padrão — só com `--dart-define=USE_MOCK=true`.
+
+Projeto: https://supabase.com/dashboard/project/hanqanaaimzthlqtrmks
 
 ## Pré-requisitos
 
 - Flutter SDK ≥ 3.3 (`flutter pub get`)
-- Conta/projeto Supabase **ou** Docker (WireMock local)
+- Anon public do dashboard (Settings → API). Nunca commitar.
 
-## Live Supabase (recomendado)
-
-Injete URL + anon key **somente** via `--dart-define` (nunca commitados):
+## Live Supabase (padrão)
 
 ```bash
+copy dart_defines.json.example dart_defines.json
+# cole a anon key em dart_defines.json
+.\tool\run_live.ps1
+```
+
+Ou:
+
+```bash
+flutter run --dart-define-from-file=dart_defines.json
+
 flutter run \
-  --dart-define=SUPABASE_URL=https://YOUR_PROJECT.supabase.co \
+  --dart-define=SUPABASE_URL=https://hanqanaaimzthlqtrmks.supabase.co \
   --dart-define=SUPABASE_ANON_KEY=YOUR_ANON_KEY
 
 # Build APK

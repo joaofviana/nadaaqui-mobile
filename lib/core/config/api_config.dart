@@ -1,7 +1,9 @@
 /// Configuração de API do client NadaAqui.
 ///
-/// Live: projeto `nadaaqui` (sa-east-1).
-/// Anon key continua só via `--dart-define=SUPABASE_ANON_KEY` / secret CI.
+/// Padrão: **Supabase live** `hanqanaaimzthlqtrmks` (sa-east-1).
+/// WireMock só com `--dart-define=USE_MOCK=true`.
+/// Anon key via `--dart-define=SUPABASE_ANON_KEY` ou
+/// `--dart-define-from-file=dart_defines.json` (gitignored).
 class ApiConfig {
   ApiConfig._();
 
@@ -20,9 +22,20 @@ class ApiConfig {
     defaultValue: '',
   );
 
-  /// Liga PostgREST quando há URL + anon key.
+  /// Opt-in no mock. Default false = tentar live.
+  static const bool forceMock = bool.fromEnvironment(
+    'USE_MOCK',
+    defaultValue: false,
+  );
+
+  static bool get missingLiveKey =>
+      !forceMock && supabaseAnonKey.trim().isEmpty;
+
+  /// Liga PostgREST no projeto live.
   static bool get useSupabase =>
-      supabaseUrl.trim().isNotEmpty && supabaseAnonKey.trim().isNotEmpty;
+      !forceMock &&
+      supabaseUrl.trim().isNotEmpty &&
+      supabaseAnonKey.trim().isNotEmpty;
 
   static String get baseUrl {
     if (useSupabase) {
@@ -31,6 +44,10 @@ class ApiConfig {
     }
     return apiBaseUrl;
   }
+
+  static const String projectRef = 'hanqanaaimzthlqtrmks';
+  static const String dashboardUrl =
+      'https://supabase.com/dashboard/project/hanqanaaimzthlqtrmks';
 
   static const String mockScenarioHeader = 'X-Mock-Scenario';
 }

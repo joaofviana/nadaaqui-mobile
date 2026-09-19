@@ -30,8 +30,8 @@ class FeedScreen extends ConsumerWidget {
                 children: [
                   const Expanded(child: BrandWordmark(height: 28)),
                   IconButton(
-                    tooltip: 'Buscar',
-                    onPressed: () {},
+                    tooltip: 'Buscar locais',
+                    onPressed: () => context.go('/mapa/explorar'),
                     icon: Icon(Icons.search, color: t.text),
                   ),
                 ],

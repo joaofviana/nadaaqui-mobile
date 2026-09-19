@@ -169,9 +169,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             Column(
               children: [
                 Image.asset(
-                  'assets/brand/mark.png',
-                  height: 56,
-                  fit: BoxFit.contain,
+                  'assets/brand/app-icon-tight.png',
+                  height: 72,
+                  width: 72,
+                  fit: BoxFit.cover,
                   filterQuality: FilterQuality.high,
                   errorBuilder: (_, __, ___) => Container(
                     width: 56,
