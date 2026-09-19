@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/config/api_config.dart';
 import '../../../core/session/session_store.dart';
+import '../../../data/api/social_api.dart';
 import '../../providers/active_checkin_provider.dart';
 import '../../providers/feed_store.dart';
 import '../../providers/swim_log_store.dart';
@@ -53,15 +55,32 @@ class _CheckinDoneScreenState extends ConsumerState<CheckinDoneScreen> {
     final raw = _meters.text.trim();
     final meters = int.tryParse(raw.replaceAll(RegExp(r'[^0-9]'), ''));
 
-    final session = SwimSession(
-      id: 'swim-${ended.millisecondsSinceEpoch}',
-      placeId: active.checkIn.placeId,
-      placeName: active.placeName,
-      startedAt: started,
-      endedAt: ended,
-      duration: duration,
-      meters: meters,
-    );
+    SwimSession session;
+    if (ApiConfig.useSupabase) {
+      try {
+        session = await ref.read(socialApiProvider).finishSwim(
+              checkInId: active.checkIn.id,
+              meters: meters,
+            );
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Não gravou no servidor: $e')),
+          );
+        }
+        return;
+      }
+    } else {
+      session = SwimSession(
+        id: 'swim-${ended.millisecondsSinceEpoch}',
+        placeId: active.checkIn.placeId,
+        placeName: active.placeName,
+        startedAt: started,
+        endedAt: ended,
+        duration: duration,
+        meters: meters,
+      );
+    }
     ref.read(swimLogStoreProvider.notifier).add(session);
 
     final user = ref.read(sessionStoreProvider)?.user;
