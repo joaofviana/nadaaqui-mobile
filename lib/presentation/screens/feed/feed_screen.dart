@@ -7,7 +7,6 @@ import '../../theme/app_colors.dart';
 import '../../widgets/brand_wordmark.dart';
 import '../compose/compose_screen.dart';
 
-/// Timeline single-column — posts mock + o que você publica na compose.
 class FeedScreen extends ConsumerWidget {
   const FeedScreen({super.key});
 
@@ -52,7 +51,7 @@ class FeedScreen extends ConsumerWidget {
   }
 }
 
-class _FeedPostTile extends StatelessWidget {
+class _FeedPostTile extends ConsumerWidget {
   const _FeedPostTile({required this.post});
 
   final FeedPost post;
@@ -69,7 +68,7 @@ class _FeedPostTile extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final i = post.colorIndex % _bg.length;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
@@ -128,7 +127,7 @@ class _FeedPostTile extends StatelessWidget {
                 const SizedBox(height: 4),
                 _PostBody(post: post),
                 const SizedBox(height: 10),
-                _Actions(comments: '${post.comments}', likes: '${post.likes}'),
+                _Actions(post: post),
               ],
             ),
           ),
@@ -148,6 +147,32 @@ class _PostBody extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (post.kind == FeedPostKind.session) ...[
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.hairline),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.timer_outlined, color: AppColors.teal, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  [
+                    if (post.durationLabel != null) post.durationLabel!,
+                    if (post.meters != null) '${post.meters} m',
+                  ].join(' · '),
+                  style: const TextStyle(
+                    color: AppColors.text,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         if (post.kind == FeedPostKind.review && post.stars != null) ...[
           Text(
             '★' * post.stars! + '☆' * (5 - post.stars!),
@@ -250,28 +275,41 @@ class _PostBody extends StatelessWidget {
   }
 }
 
-class _Actions extends StatelessWidget {
-  const _Actions({required this.comments, required this.likes});
+class _Actions extends ConsumerWidget {
+  const _Actions({required this.post});
 
-  final String comments;
-  final String likes;
+  final FeedPost post;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Row(
       children: [
         const Icon(Icons.chat_bubble_outline, size: 16, color: AppColors.muted),
         const SizedBox(width: 4),
         Text(
-          comments,
+          '${post.comments}',
           style: const TextStyle(color: AppColors.muted, fontSize: 12),
         ),
         const SizedBox(width: 20),
-        const Icon(Icons.favorite_border, size: 16, color: AppColors.muted),
-        const SizedBox(width: 4),
-        Text(
-          likes,
-          style: const TextStyle(color: AppColors.muted, fontSize: 12),
+        InkWell(
+          onTap: () => ref.read(feedStoreProvider.notifier).toggleKudos(post.id),
+          child: Row(
+            children: [
+              Icon(
+                post.liked ? Icons.favorite : Icons.favorite_border,
+                size: 16,
+                color: post.liked ? const Color(0xFFFF453A) : AppColors.muted,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '${post.likes}',
+                style: TextStyle(
+                  color: post.liked ? const Color(0xFFFF453A) : AppColors.muted,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(width: 20),
         const Icon(Icons.share_outlined, size: 16, color: AppColors.muted),
