@@ -3,23 +3,21 @@ import 'package:go_router/go_router.dart';
 
 import '../screens/auth/login_screen.dart';
 import '../screens/challenges/challenges_screen.dart';
-import '../screens/checkin/checkin_tab_screen.dart';
 import '../screens/compose/compose_screen.dart';
 import '../screens/config/config_screen.dart';
 import '../screens/feed/feed_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/leaderboard/place_leaderboard_screen.dart';
-import '../screens/notifications/notifications_screen.dart';
 import '../screens/places/place_detail_screen.dart';
 import '../screens/places/places_screen.dart';
 import '../screens/profile/profile_screen.dart';
+import '../screens/workout/workout_builder_screen.dart';
 import '../shell/main_shell.dart';
 
 final GlobalKey<NavigatorState> _rootKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _mapaKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _feedKey = GlobalKey<NavigatorState>();
-final GlobalKey<NavigatorState> _checkinKey = GlobalKey<NavigatorState>();
-final GlobalKey<NavigatorState> _notifKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> _treinoKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _perfilKey = GlobalKey<NavigatorState>();
 
 GoRouter createAppRouter() {
@@ -102,20 +100,11 @@ GoRouter createAppRouter() {
             ],
           ),
           StatefulShellBranch(
-            navigatorKey: _checkinKey,
+            navigatorKey: _treinoKey,
             routes: [
               GoRoute(
-                path: '/checkin',
-                builder: (context, state) => const CheckinTabScreen(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            navigatorKey: _notifKey,
-            routes: [
-              GoRoute(
-                path: '/notificacoes',
-                builder: (context, state) => const NotificationsScreen(),
+                path: '/treino',
+                builder: (context, state) => const WorkoutBuilderScreen(),
               ),
             ],
           ),

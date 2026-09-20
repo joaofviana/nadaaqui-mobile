@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../providers/active_checkin_provider.dart';
 import '../theme/app_colors.dart';
 
-/// Bottom nav 5: Mapa | Feed | Check-in | Notificações | Perfil (HOME-IA).
+/// Bottom nav 4: Mapa | Feed | Treino | Perfil (REORGANIZADO).
 class MainShell extends ConsumerWidget {
   const MainShell({super.key, required this.navigationShell});
 
@@ -54,26 +54,18 @@ class MainShell extends ConsumerWidget {
                   onTap: () => _onTap(1),
                 ),
                 _NavItem(
-                  icon: Icons.location_on_outlined,
-                  selectedIcon: Icons.location_on,
-                  label: 'Check-in',
+                  icon: Icons.fitness_center_outlined,
+                  selectedIcon: Icons.fitness_center,
+                  label: 'Treino',
                   selected: idx == 2,
                   onTap: () => _onTap(2),
-                ),
-                _NavItem(
-                  icon: Icons.notifications_outlined,
-                  selectedIcon: Icons.notifications,
-                  label: 'Notificações',
-                  selected: idx == 3,
-                  badge: notificationBadgeLabel,
-                  onTap: () => _onTap(3),
                 ),
                 _NavItem(
                   icon: Icons.person_outline,
                   selectedIcon: Icons.person,
                   label: 'Perfil',
-                  selected: idx == 4,
-                  onTap: () => _onTap(4),
+                  selected: idx == 3,
+                  onTap: () => _onTap(3),
                 ),
               ],
             ),

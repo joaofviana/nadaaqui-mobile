@@ -115,13 +115,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       backgroundColor: t.bg,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final ok = await ensureLoggedIn(context, ref);
-          if (ok && context.mounted) context.go('/checkin');
-        },
-        child: const Icon(Icons.add),
-      ),
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -302,6 +295,74 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
             SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+                child: InkWell(
+                  onTap: () => context.go('/mapa/explorar'),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          t.accent.withValues(alpha: 0.15),
+                          t.accent.withValues(alpha: 0.05),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: t.accent.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: t.accent.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.location_on_outlined,
+                            color: t.accent,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Fazer Check-in',
+                                style: TextStyle(
+                                  color: t.text,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              Text(
+                                'Escolha um local próximo para nadar',
+                                style: TextStyle(
+                                  color: t.textMuted,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right,
+                          color: t.textMuted,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
               child: SizedBox(
                 height: 168,
                 child: ListView.separated(
@@ -478,7 +539,7 @@ class _NearbyPoolCard extends StatelessWidget {
                     if (pool.showPresence && pool.presence != null) ...[
                       const SizedBox(height: 8),
                       _PresenceRow(
-                        level: pool.presence!,
+                        level: pool.presence!.label,
                         count: pool.presenceCount,
                       ),
                     ],
@@ -550,24 +611,12 @@ class _CompactNearbyCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        [
-                          if (pool.distanceMeters != null)
-                            formatDistanceMeters(pool.distanceMeters!),
-                          pool.tipo,
-                        ].join(' · '),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: t.textMuted, fontSize: 11),
-                      ),
-                      Text(
-                        pool.showPresence && pool.presence != null
-                            ? '${pool.presence!.label} · ${pool.accessLabel}'
-                            : pool.accessLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: t.textMuted, fontSize: 11),
-                      ),
+                      if (pool.distanceMeters != null &&
+                          pool.checkInRadiusMeters != null)
+                        DistanceChip.fixedMeters(
+                          distanceMeters: pool.distanceMeters!,
+                          checkInRadiusMeters: pool.checkInRadiusMeters!,
+                        ),
                     ],
                   ),
                 ),
@@ -576,55 +625,6 @@ class _CompactNearbyCard extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _PresenceRow extends StatelessWidget {
-  const _PresenceRow({required this.level, required this.count});
-
-  final PresenceLevel level;
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = NadaTokens.of(context);
-    final color = switch (level) {
-      PresenceLevel.vazio => t.presenceEmpty,
-      PresenceLevel.poucaGente => t.presenceLow,
-      PresenceLevel.cheio => t.presenceFull,
-    };
-    return Row(
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: 0.35),
-                blurRadius: 6,
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          level.label,
-          style: TextStyle(
-            color: t.text,
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-          ),
-        ),
-        Text(
-          ' · $count na água',
-          style: TextStyle(color: t.textMuted, fontSize: 13),
-        ),
-      ],
     );
   }
 }
@@ -638,18 +638,48 @@ class _Tag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
-    final fg = accent ? t.accent : t.badgeFg;
-    final bd = accent ? t.accent : t.badgeBd;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: bd),
+        color: accent ? t.accent : t.surface2,
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         label,
-        style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w500),
+        style: TextStyle(
+          color: accent ? Colors.black : t.text,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
       ),
+    );
+  }
+}
+
+class _PresenceRow extends StatelessWidget {
+  const _PresenceRow({required this.level, required this.count});
+
+  final String level;
+  final int? count;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = NadaTokens.of(context);
+    final color = switch (level) {
+      'empty' => t.presenceEmpty,
+      'low' => t.presenceLow,
+      'full' => t.presenceFull,
+      _ => t.textMuted,
+    };
+    return Row(
+      children: [
+        Icon(Icons.people_outline, color: color, size: 16),
+        const SizedBox(width: 6),
+        Text(
+          count != null ? '$count nadando' : 'Vazio',
+          style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+      ],
     );
   }
 }
