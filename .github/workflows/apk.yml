@@ -28,36 +28,29 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-1.0.10-rollback.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-1.0.11-fix-gps-arrays.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.10-rollback-${{ steps.timestamp.outputs.ts }}
-          name: NadaAqui 1.0.10 — Rollback Places Changes
+          tag_name: v1.0.11-fix-gps-arrays-${{ steps.timestamp.outputs.ts }}
+          name: NadaAqui 1.0.11 — Fix GPS Arrays 400 Error
           body: |
-            Versão com rollback completo das mudanças de places!
+            Versão com correção do erro 400 quando GPS é negado!
             
-            **Rollback Changes:**
-            - Removidas tentativas de aumentar limite de places
-            - Restaurada função nearby_places original (default 50, max 100)
-            - Restaurada auth logic original (session token)
-            - Restaurada API call original com todos os parâmetros
-            - Removido código de debugging
+            **Root Cause Identified:**
+            - User reported error 400 started when GPS permission was denied
+            - When GPS denied, app falls back to listByCity with city slug
+            - Was sending empty arrays [] for priceType and totalPass when filter is "all"
+            - Empty arrays cause 400 error in Supabase RPC
             
-            **Backend:**
-            - Migration 20260919360000_rollback_all_places_changes.sql aplicada
-            - Função nearby_places restaurada ao estado original
-            - Função nearby_places_simple removida
-            - Aplicado via supabase db push
+            **Fix Applied:**
+            - Check if arrays are not empty before sending
+            - Pass null instead of empty arrays to avoid 400 error
+            - Applied to all three fallback paths in places_screen.dart
             
-            **Mobile:**
-            - PlacesRepository sem limit parameter explícito
-            - Auth header restaurado para usar session token
-            - API Places restaurado com todos os parâmetros originais
-            
-            **Teste:**
-            - 21/21 testes passando
-            - App deve voltar ao estado original que funcionava
-            - As 6 novas piscinas em Mooca, Vila Prudente, Sacoma continuam disponíveis
+            **Test:**
+            - 21/21 tests passing
+            - Should fix 400 error when GPS is denied on first use
+            - User should allow GPS permission when prompted
             
             **Funcionalidades Anteriores:**
             - Login-First (v1.0.7)
@@ -70,6 +63,6 @@ jobs:
             
             Backend Supabase totalmente funcional com migrations aplicadas.
             Sideload no Android.
-          files: dist/nadaaqui-1.0.10-rollback.apk
+          files: dist/nadaaqui-1.0.11-fix-gps-arrays.apk
           target_commitish: main
           make_latest: true
