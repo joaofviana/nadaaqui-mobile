@@ -28,31 +28,36 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-1.0.8-debug-places.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-1.0.10-rollback.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.8-debug-places-${{ steps.timestamp.outputs.ts }}
-          name: NadaAqui 1.0.8 — Debug Places 400 Error
+          tag_name: v1.0.10-rollback-${{ steps.timestamp.outputs.ts }}
+          name: NadaAqui 1.0.10 — Rollback Places Changes
           body: |
-            Versão de debugging para investigar erro 400 nas piscinas!
+            Versão com rollback completo das mudanças de places!
             
-            **Debug Changes:**
-            - Usando versão simplificada da RPC nearby_places (nearby_places_simple)
-            - Removidos temporariamente parâmetros de array (p_price_types, p_total_pass)
-            - Removido parâmetro p_bbox
-            - Isso deve isolar se o erro 400 está relacionado a arrays
+            **Rollback Changes:**
+            - Removidas tentativas de aumentar limite de places
+            - Restaurada função nearby_places original (default 50, max 100)
+            - Restaurada auth logic original (session token)
+            - Restaurada API call original com todos os parâmetros
+            - Removido código de debugging
             
             **Backend:**
-            - Migration 20260919350000_test_simple_nearby.sql aplicada
-            - Função nearby_places_simple criada sem arrays
-            - Migration 20260919340000_fix_ambiguous_id aplicada
-            - Migration 20260919330000_fix_nearby_places_limits aplicada
+            - Migration 20260919360000_rollback_all_places_changes.sql aplicada
+            - Função nearby_places restaurada ao estado original
+            - Função nearby_places_simple removida
+            - Aplicado via supabase db push
+            
+            **Mobile:**
+            - PlacesRepository sem limit parameter explícito
+            - Auth header restaurado para usar session token
+            - API Places restaurado com todos os parâmetros originais
             
             **Teste:**
             - 21/21 testes passando
-            - Teste no app: abra o mapa → tente carregar piscinas → clique em "Ver todas"
-            - Se erro 400 desaparecer, problema está nos arrays
-            - Se erro 400 persistir, problema está em outro lugar
+            - App deve voltar ao estado original que funcionava
+            - As 6 novas piscinas em Mooca, Vila Prudente, Sacoma continuam disponíveis
             
             **Funcionalidades Anteriores:**
             - Login-First (v1.0.7)
@@ -65,6 +70,6 @@ jobs:
             
             Backend Supabase totalmente funcional com migrations aplicadas.
             Sideload no Android.
-          files: dist/nadaaqui-1.0.8-debug-places.apk
+          files: dist/nadaaqui-1.0.10-rollback.apk
           target_commitish: main
           make_latest: true
