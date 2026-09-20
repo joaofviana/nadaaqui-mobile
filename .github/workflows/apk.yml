@@ -25,16 +25,16 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-1.0.0-supabase-live.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-1.0.1-supabase-debug.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.0-supabase-live
-          name: NadaAqui 1.0.0 — Supabase Live Ready
+          tag_name: v1.0.1-supabase-debug
+          name: NadaAqui 1.0.1 — Supabase Debug
           body: |
-            APK do `main` com Supabase live configurado.
+            APK do `main` com debug logging ativado.
+            Este APK mostra logs de configuração no console para diagnosticar problemas.
             Backend Supabase totalmente funcional com migrations aplicadas.
-            Sessão melhorada com refresh token e logout.
             Sideload no Android.
-          files: dist/nadaaqui-1.0.0-supabase-live.apk
+          files: dist/nadaaqui-1.0.1-supabase-debug.apk
           target_commitish: main
           make_latest: true
