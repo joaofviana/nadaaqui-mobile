@@ -25,6 +25,7 @@ class FeedPost {
     this.liked = false,
     this.durationLabel,
     this.meters,
+    this.authorId,
   });
 
   final String id;
@@ -43,6 +44,7 @@ class FeedPost {
   final bool liked;
   final String? durationLabel;
   final int? meters;
+  final String? authorId;
 
   String get timeLabel {
     final d = DateTime.now().difference(createdAt);
@@ -52,7 +54,7 @@ class FeedPost {
     return '${d.inDays}d';
   }
 
-  FeedPost copyWith({int? likes, bool? liked}) {
+  FeedPost copyWith({int? likes, bool? liked, String? authorId}) {
     return FeedPost(
       id: id,
       kind: kind,
@@ -70,6 +72,7 @@ class FeedPost {
       liked: liked ?? this.liked,
       durationLabel: durationLabel,
       meters: meters,
+      authorId: authorId ?? this.authorId,
     );
   }
 }
@@ -114,6 +117,7 @@ final _seed = <FeedPost>[
     placeName: 'Piscina Municipal',
     comments: 16,
     likes: 128,
+    authorId: 'user1',
   ),
   FeedPost(
     id: 'seed-checkin',
@@ -127,6 +131,7 @@ final _seed = <FeedPost>[
     placeName: 'Lagoa Azul',
     comments: 3,
     likes: 24,
+    authorId: 'user2',
   ),
   FeedPost(
     id: 'seed-review',
@@ -141,6 +146,7 @@ final _seed = <FeedPost>[
     stars: 5,
     comments: 8,
     likes: 41,
+    authorId: 'user3',
   ),
 ];
 

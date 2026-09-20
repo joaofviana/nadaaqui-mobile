@@ -12,6 +12,7 @@ import '../screens/leaderboard/place_leaderboard_screen.dart';
 import '../screens/places/place_detail_screen.dart';
 import '../screens/places/places_screen.dart';
 import '../screens/profile/profile_screen.dart';
+import '../screens/profile/public_profile_screen.dart';
 import '../screens/workout/workout_builder_screen.dart';
 import '../shell/main_shell.dart';
 import '../../core/session/session_store.dart';
@@ -56,6 +57,14 @@ GoRouter createAppRouter() {
         path: '/desafios',
         parentNavigatorKey: _rootKey,
         builder: (context, state) => const ChallengesScreen(),
+      ),
+      GoRoute(
+        path: '/usuario/:userId',
+        parentNavigatorKey: _rootKey,
+        builder: (context, state) {
+          final userId = state.pathParameters['userId']!;
+          return PublicProfileScreen(userId: userId);
+        },
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {

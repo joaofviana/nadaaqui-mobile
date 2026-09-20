@@ -116,12 +116,15 @@ class _FeedPostTile extends ConsumerWidget {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   spacing: 4,
                   children: [
-                    Text(
-                      post.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.text,
-                        fontSize: 14,
+                    GestureDetector(
+                      onTap: () => context.push('/usuario/${post.authorId}'),
+                      child: Text(
+                        post.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.text,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                     Text(
