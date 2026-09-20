@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import 'core/config/api_config.dart';
-import 'core/session/session_store.dart';
 import 'presentation/router/app_router.dart';
 import 'presentation/theme/app_theme.dart';
 
@@ -20,19 +18,18 @@ void main() {
   debugPrint('Missing Live Key: ${ApiConfig.missingLiveKey}');
   debugPrint('==========================');
   
-  final container = ProviderContainer();
-  final router = createAppRouter(container);
-  
-  runApp(UncontrolledProviderScope(
-    container: container,
-    child: NadaAquiApp(router: router),
-  ));
+  runApp(const ProviderScope(child: NadaAquiApp()));
 }
 
-class NadaAquiApp extends StatelessWidget {
-  const NadaAquiApp({super.key, required this.router});
+class NadaAquiApp extends StatefulWidget {
+  const NadaAquiApp({super.key});
 
-  final GoRouter router;
+  @override
+  State<NadaAquiApp> createState() => _NadaAquiAppState();
+}
+
+class _NadaAquiAppState extends State<NadaAquiApp> {
+  late final _router = createAppRouter();
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +39,7 @@ class NadaAquiApp extends StatelessWidget {
       themeMode: ThemeMode.dark, // OLED default (TOKENS)
       theme: buildNadaAquiLightTheme(),
       darkTheme: buildNadaAquiDarkTheme(),
-      routerConfig: router,
+      routerConfig: _router,
     );
   }
 }

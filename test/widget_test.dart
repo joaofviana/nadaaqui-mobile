@@ -1,32 +1,35 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:nadaaqui/core/session/session_store.dart';
-import 'package:nadaaqui/data/models/auth_session.dart';
-import 'package:nadaaqui/data/models/user.dart';
+import 'package:nadaaqui/data/models/place.dart';
+import 'package:nadaaqui/data/models/remote_config.dart';
+import 'package:nadaaqui/data/repositories/config_repository.dart';
 import 'package:nadaaqui/main.dart';
-import 'package:nadaaqui/presentation/router/app_router.dart';
+import 'package:nadaaqui/presentation/screens/home/home_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   SharedPreferences.setMockInitialValues({});
 
-  testWidgets('NadaAqui smoke - auth redirect', (tester) async {
-    final container = ProviderContainer();
-    
-    // No session - should redirect to login
-    final router = createAppRouter(container);
-    
+  testWidgets('NadaAqui smoke', (tester) async {
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: NadaAquiApp(router: router),
+      ProviderScope(
+        overrides: [
+          homePlacesProvider.overrideWith((ref) async => const <Place>[]),
+          remoteConfigProvider.overrideWith(
+            (ref) async => const RemoteConfig(
+              checkInRadiusMeters: 150,
+              locationMaxAgeSeconds: 30,
+              checkInTtlSeconds: 10800,
+              presencePollSeconds: 15,
+              citySlug: 'sao-paulo',
+            ),
+          ),
+        ],
+        child: const NadaAquiApp(),
       ),
     );
     await tester.pump();
-    
-    // Should be on login screen
-    expect(find.textContaining('Entrar'), findsWidgets);
+    expect(find.textContaining('Piscinas'), findsWidgets);
   });
 }

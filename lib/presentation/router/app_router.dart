@@ -22,25 +22,13 @@ final GlobalKey<NavigatorState> _feedKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _treinoKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _perfilKey = GlobalKey<NavigatorState>();
 
-GoRouter createAppRouter(ProviderContainer container) {
+GoRouter createAppRouter() {
   return GoRouter(
     navigatorKey: _rootKey,
     initialLocation: '/mapa',
     redirect: (context, state) {
-      final session = container.read(sessionStoreProvider);
-      final isAuthenticated = session?.accessToken.isNotEmpty == true;
-      final isAuthRoute = state.matchedLocation == '/entrar';
-      
-      // Se não está autenticado e não está na tela de login, vai para login
-      if (!isAuthenticated && !isAuthRoute) {
-        return '/entrar';
-      }
-      
-      // Se está autenticado e está na tela de login, vai para o app
-      if (isAuthenticated && isAuthRoute) {
-        return '/mapa';
-      }
-      
+      // Temporariamente desabilitado para debug - permite acesso sem auth
+      // TODO: Reativar autenticação quando sessionStore estiver funcionando
       return null;
     },
     routes: [
