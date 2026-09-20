@@ -21,25 +21,20 @@ void main() {
   runApp(const ProviderScope(child: NadaAquiApp()));
 }
 
-class NadaAquiApp extends StatefulWidget {
+class NadaAquiApp extends ConsumerWidget {
   const NadaAquiApp({super.key});
 
   @override
-  State<NadaAquiApp> createState() => _NadaAquiAppState();
-}
-
-class _NadaAquiAppState extends State<NadaAquiApp> {
-  late final _router = createAppRouter();
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
+    
     return MaterialApp.router(
       title: 'NadaAqui',
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.dark, // OLED default (TOKENS)
       theme: buildNadaAquiLightTheme(),
       darkTheme: buildNadaAquiDarkTheme(),
-      routerConfig: _router,
+      routerConfig: router,
     );
   }
 }

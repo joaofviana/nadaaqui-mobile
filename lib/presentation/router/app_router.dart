@@ -24,13 +24,33 @@ final GlobalKey<NavigatorState> _feedKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _treinoKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _perfilKey = GlobalKey<NavigatorState>();
 
-GoRouter createAppRouter() {
+/// Provider para o router que monitora autenticação
+final routerProvider = Provider<GoRouter>((ref) {
+  return createAppRouter(ref);
+});
+
+GoRouter createAppRouter(Ref ref) {
+  final sessionStore = ref.watch(sessionStoreProvider.notifier);
+  
   return GoRouter(
     navigatorKey: _rootKey,
-    initialLocation: '/mapa',
+    initialLocation: '/entrar',
+    refreshListenable: sessionStore,
     redirect: (context, state) {
-      // Temporariamente desabilitado para debug - permite acesso sem auth
-      // TODO: Reativar autenticação quando sessionStore estiver funcionando
+      final session = ref.read(sessionStoreProvider);
+      final isAuthenticated = session?.accessToken.isNotEmpty == true;
+      final isAuthRoute = state.matchedLocation == '/entrar';
+      
+      // Se não está autenticado e não está na tela de login, vai para login
+      if (!isAuthenticated && !isAuthRoute) {
+        return '/entrar';
+      }
+      
+      // Se está autenticado e está na tela de login, vai para o app
+      if (isAuthenticated && isAuthRoute) {
+        return '/mapa';
+      }
+      
       return null;
     },
     routes: [

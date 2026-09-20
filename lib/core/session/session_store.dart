@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -11,7 +12,8 @@ const _sessionPrefsKey = 'nadaaqui.auth.session';
 const _sessionCreatedAtKey = 'nadaaqui.auth.created_at';
 
 /// Sessão em memória + SharedPreferences. Nunca loga tokens.
-class SessionStore extends Notifier<AuthSession?> {
+/// É um ChangeNotifier para permitir que o router reaja a mudanças.
+class SessionStore extends Notifier<AuthSession?> with ChangeNotifier {
   DateTime? _createdAt;
 
   @override
@@ -39,6 +41,7 @@ class SessionStore extends Notifier<AuthSession?> {
       }
 
       state = session;
+      notifyListeners();
     } catch (_) {
       // Storage ausente ou JSON inválido: permanece deslogado.
     }
@@ -78,11 +81,13 @@ class SessionStore extends Notifier<AuthSession?> {
   void setSession(AuthSession session) {
     state = session;
     unawaited(_persist(session));
+    notifyListeners();
   }
 
   void clear() {
     state = null;
     unawaited(_persist(null));
+    notifyListeners();
   }
 }
 
