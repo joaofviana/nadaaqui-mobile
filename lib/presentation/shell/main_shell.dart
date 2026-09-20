@@ -47,8 +47,8 @@ class MainShell extends ConsumerWidget {
                   onTap: () => _onTap(0),
                 ),
                 _NavItem(
-                  icon: Icons.view_list_outlined,
-                  selectedIcon: Icons.view_list,
+                  icon: Icons.home_outlined,
+                  selectedIcon: Icons.home,
                   label: 'Feed',
                   selected: idx == 1,
                   onTap: () => _onTap(1),
