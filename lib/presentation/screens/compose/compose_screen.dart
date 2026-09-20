@@ -169,14 +169,30 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 4, 12, 4),
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    t.accent.withValues(alpha: 0.15),
+                    t.bg,
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
               child: Row(
                 children: [
-                  IconButton(
-                    tooltip: 'Fechar',
-                    onPressed: () => context.pop(),
-                    icon: Icon(Icons.close, color: t.text),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: t.surface,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      tooltip: 'Fechar',
+                      onPressed: () => context.pop(),
+                      icon: Icon(Icons.close, color: t.text, size: 20),
+                    ),
                   ),
                   Expanded(
                     child: Text(
@@ -184,145 +200,263 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: t.text,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
                       ),
                     ),
                   ),
-                  SizedBox(
-                    height: 36,
-                    child: FilledButton(
-                      onPressed: _canPublish ? _publish : null,
-                      style: FilledButton.styleFrom(
-                        backgroundColor:
-                            _canPublish ? t.ctaStrongBg : t.ctaBg,
-                        disabledBackgroundColor: t.ctaBg,
-                        foregroundColor: t.ctaStrongFg,
-                        disabledForegroundColor:
-                            t.ctaStrongFg.withValues(alpha: 0.45),
-                        shape: const StadiumBorder(),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        textStyle: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: _canPublish 
+                          ? LinearGradient(
+                              colors: [t.accent, t.accent.withValues(alpha: 0.8)],
+                            )
+                          : null,
+                      color: _canPublish ? null : t.surface2,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: _canPublish
+                          ? [
+                              BoxShadow(
+                                color: t.accent.withValues(alpha: 0.3),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _canPublish ? _publish : null,
+                        borderRadius: BorderRadius.circular(24),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 10,
+                          ),
+                          child: Text(
+                            _cta,
+                            style: TextStyle(
+                              color: _canPublish 
+                                  ? Colors.black 
+                                  : t.textMuted.withValues(alpha: 0.5),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
                         ),
                       ),
-                      child: Text(_cta),
                     ),
                   ),
                 ],
               ),
             ),
-            Divider(height: 1, color: t.hairline),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
                 children: [
                   if (widget.kind == ComposeKind.review) ...[
-                    Text(
-                      'Sua nota',
-                      style: TextStyle(
-                        color: t.textMuted,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            t.surface.withValues(alpha: 0.5),
+                            t.surface,
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: t.accent.withValues(alpha: 0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Sua nota',
+                            style: TextStyle(
+                              color: t.text,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(5, (i) {
+                              final n = i + 1;
+                              final on = n <= _stars;
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6),
+                                child: GestureDetector(
+                                  onTap: () => setState(() => _stars = n),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: on 
+                                          ? AppColors.star.withValues(alpha: 0.2)
+                                          : t.surface2,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      on ? Icons.star : Icons.star_border,
+                                      color: on ? AppColors.star : t.textMuted,
+                                      size: 28,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: List.generate(5, (i) {
-                        final n = i + 1;
-                        final on = n <= _stars;
-                        return IconButton(
-                          onPressed: () => setState(() => _stars = n),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(
-                            minWidth: 40,
-                            minHeight: 40,
-                          ),
-                          icon: Icon(
-                            on ? Icons.star : Icons.star_border,
-                            color: on ? AppColors.star : t.textMuted,
-                            size: 32,
-                          ),
-                        );
-                      }),
-                    ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 20),
                   ],
                   if (widget.placeName != null &&
                       widget.placeName!.isNotEmpty) ...[
                     _PlaceChip(name: widget.placeName!),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                   ],
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CircleAvatar(
-                        radius: 22,
-                        backgroundColor: const Color(0xFF99F6E4),
-                        child: Text(
-                          _initial(
-                            ref.watch(sessionStoreProvider)?.user.displayName,
-                          ),
-                          style: const TextStyle(
-                            color: Color(0xFF0F766E),
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          t.surface.withValues(alpha: 0.3),
+                          t.surface.withValues(alpha: 0.1),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: _text,
-                          maxLines: null,
-                          minLines: 6,
-                          maxLength: _maxChars,
-                          autofocus: true,
-                          style: TextStyle(
-                            color: t.text,
-                            fontSize: 18,
-                            height: 1.35,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: _hint,
-                            hintStyle: TextStyle(
-                              color: t.inputPlaceholder,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w400,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: t.hairline,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF99F6E4), Color(0xFF5EEAD4)],
                             ),
-                            border: InputBorder.none,
-                            counterText: '',
-                            filled: false,
-                            contentPadding: EdgeInsets.zero,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF99F6E4).withValues(alpha: 0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: CircleAvatar(
+                            radius: 24,
+                            backgroundColor: Colors.transparent,
+                            child: Text(
+                              _initial(
+                                ref.watch(sessionStoreProvider)?.user.displayName,
+                              ),
+                              style: const TextStyle(
+                                color: Color(0xFF0F766E),
+                                fontWeight: FontWeight.w800,
+                                fontSize: 18,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: TextField(
+                            controller: _text,
+                            maxLines: null,
+                            minLines: 5,
+                            maxLength: _maxChars,
+                            autofocus: true,
+                            style: TextStyle(
+                              color: t.text,
+                              fontSize: 17,
+                              height: 1.4,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: _hint,
+                              hintStyle: TextStyle(
+                                color: t.inputPlaceholder,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w400,
+                              ),
+                              border: InputBorder.none,
+                              counterText: '',
+                              filled: false,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-            Divider(height: 1, color: t.hairline),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 6, 16, 6),
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              decoration: BoxDecoration(
+                color: t.bg,
+                boxShadow: [
+                  BoxShadow(
+                    color: t.surface.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
+              ),
               child: Row(
                 children: [
-                  IconButton(
-                    tooltip: 'Foto',
-                    onPressed: () {
+                  _FitnessActionButton(
+                    icon: Icons.image_outlined,
+                    label: 'Foto',
+                    onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Foto no post em breve')),
                       );
                     },
-                    icon: Icon(Icons.image_outlined, color: t.accent),
+                    color: t.accent,
+                  ),
+                  const SizedBox(width: 12),
+                  _FitnessActionButton(
+                    icon: Icons.emoji_emotions_outlined,
+                    label: 'Emoji',
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Emojis em breve')),
+                      );
+                    },
+                    color: const Color(0xFFFBBF24),
                   ),
                   const Spacer(),
-                  Text(
-                    '$left',
-                    style: TextStyle(
-                      color: left < 20 ? t.error : t.textMuted,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: left < 20 
+                          ? t.error.withValues(alpha: 0.15)
+                          : t.surface2,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '$left',
+                      style: TextStyle(
+                        color: left < 20 ? t.error : t.textMuted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
@@ -344,15 +478,31 @@ class _PlaceChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: t.hairline),
+        gradient: LinearGradient(
+          colors: [
+            t.accent.withValues(alpha: 0.15),
+            t.accent.withValues(alpha: 0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: t.accent.withValues(alpha: 0.3),
+          width: 1,
+        ),
       ),
       child: Row(
         children: [
-          Icon(Icons.place_outlined, size: 18, color: t.accent),
-          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: t.accent.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.place_outlined, size: 16, color: t.accent),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               name,
@@ -361,11 +511,64 @@ class _PlaceChip extends StatelessWidget {
               style: TextStyle(
                 color: t.text,
                 fontWeight: FontWeight.w700,
-                fontSize: 14,
+                fontSize: 15,
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FitnessActionButton extends StatelessWidget {
+  const _FitnessActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = NadaTokens.of(context);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              color.withValues(alpha: 0.15),
+              color.withValues(alpha: 0.05),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: color.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: t.text,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
