@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Get timestamp
+        id: timestamp
+        run: echo "ts=$(date +%Y%m%d%H%M)" >> $GITHUB_OUTPUT
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -28,7 +31,7 @@ jobs:
           cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-1.0.7-login-first.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.7-login-first
+          tag_name: v1.0.7-login-first-${{ steps.timestamp.outputs.ts }}
           name: NadaAqui 1.0.7 — Login First Working
           body: |
             Versão com login-first funcional e testado!
