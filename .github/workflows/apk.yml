@@ -28,44 +28,43 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-1.0.7-login-first.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-1.0.8-debug-places.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.7-login-first-${{ steps.timestamp.outputs.ts }}
-          name: NadaAqui 1.0.7 — Login First Working
+          tag_name: v1.0.8-debug-places-${{ steps.timestamp.outputs.ts }}
+          name: NadaAqui 1.0.8 — Debug Places 400 Error
           body: |
-            Versão com login-first funcional e testado!
+            Versão de debugging para investigar erro 400 nas piscinas!
             
-            **Login-First Screen:**
-            - App começa na tela de login (não mais no mapa)
-            - Implementação correta com Riverpod providers
-            - SessionStore agora é ChangeNotifier
-            - Router reage automaticamente a mudanças de sessão
-            - Redirecionamento funcional: não autenticado → login, autenticado → app
-            - Testes passam validando comportamento
+            **Debug Changes:**
+            - Usando versão simplificada da RPC nearby_places (nearby_places_simple)
+            - Removidos temporariamente parâmetros de array (p_price_types, p_total_pass)
+            - Removido parâmetro p_bbox
+            - Isso deve isolar se o erro 400 está relacionado a arrays
             
-            **Como funciona:**
-            - Usuário abre app → vê tela de login
-            - Login com sucesso → redirecionado para /mapa
-            - Logout → redirecionado para /entrar
-            - Sessão persistida → usuário vai direto para app ao reabrir
+            **Backend:**
+            - Migration 20260919350000_test_simple_nearby.sql aplicada
+            - Função nearby_places_simple criada sem arrays
+            - Migration 20260919340000_fix_ambiguous_id aplicada
+            - Migration 20260919330000_fix_nearby_places_limits aplicada
             
-            **Funcionalidades Sociais (v1.0.6):**
-            - Tela de composição redesenhada (Instagram/Twitter style)
-            - Sistema de comentários completo
-            - Sininho de notificações no feed
-            - Sistema de seguir/deixar de seguir
+            **Teste:**
+            - 21/21 testes passando
+            - Teste no app: abra o mapa → tente carregar piscinas → clique em "Ver todas"
+            - Se erro 400 desaparecer, problema está nos arrays
+            - Se erro 400 persistir, problema está em outro lugar
             
             **Funcionalidades Anteriores:**
-            - Perfil público com calendário (FITfolio style)
-            - Ícone de home no feed (Instagram/X style)
+            - Login-First (v1.0.7)
+            - Social UI (v1.0.6)
+            - Streak Counter
+            - Perfil público com calendário
+            - Sistema de comentários
+            - Sistema de follows
             - 6 novas piscinas (Mooca, Vila Prudente, Sacoma)
-            - Tabbar reorganizada (Mapa | Feed | Treino | Perfil)
-            - GymRats (leaderboard, pontos, desafios, conquistas)
-            - Workout builder
             
             Backend Supabase totalmente funcional com migrations aplicadas.
             Sideload no Android.
-          files: dist/nadaaqui-1.0.7-login-first.apk
+          files: dist/nadaaqui-1.0.8-debug-places.apk
           target_commitish: main
           make_latest: true
