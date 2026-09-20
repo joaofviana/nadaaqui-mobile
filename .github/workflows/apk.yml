@@ -25,30 +25,48 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-1.0.3-fixed.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-1.0.6-social.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.3-fixed
-          name: NadaAqui 1.0.3 — Navigation Fixed
+          tag_name: v1.0.6-social
+          name: NadaAqui 1.0.6 — Social Features
           body: |
-            APK com correção do erro de navegação "GoError there is nothing to pop".
+            Nova versão com funcionalidades sociais completas!
             
-            **Correções:**
-            - Revertido ProviderScope manual que causava erro de navegação
-            - Restaurado padrão padrão ProviderScope do Flutter Riverpod
-            - Autenticação temporariamente desabilitada para debug
-            - Testes unitários restaurados ao padrão original
+            **Tela de Composição Redesenhada:**
+            - Design moderno inspirado em Instagram/Twitter
+            - AppBar padrão com botão de publicar arredondado
+            - Layout limpo: avatar + input de texto
+            - Toolbar simplificada (Foto, GIF, Emoji)
+            - Loading state durante publicação
+            - Better error handling
             
-            **Funcionalidades GymRats mantidas:**
-            - Leaderboard por lugar (rankings de nadadores)
-            - Sistema de pontos e níveis gamificado
-            - Desafios de natação (challenges)
-            - Conquistas e achievements no perfil
-            - Tela de composição redesign fitness
-            - Workout builder com exercícios de natação
+            **Sistema de Comentários:**
+            - Tela de comentários completa
+            - Modelos de dados para comentários
+            - Like e responder em comentários
+            - Comentários clicáveis no feed
+            
+            **Sininho de Notificações:**
+            - Ícone de notificações no header do feed
+            - Badge indicador para notificações não lidas
+            - Placeholder para tela de notificações
+            
+            **Sistema de Follows:**
+            - Botão de seguir/deixar de seguir funcional
+            - Atualiza contador de seguidores
+            - Feedback visual imediato
+            
+            **Melhorias Anteriores:**
+            - Perfil público com calendário de atividades (FITfolio style)
+            - Ícone de home no feed (Instagram/X style)
+            - 6 novas piscinas em Mooca, Vila Prudente e Sacoma
+            - Tabbar reorganizada (Mapa | Feed | Treino | Perfil)
+            - Funcionalidades GymRats (leaderboard, pontos, desafios, conquistas)
+            - Workout builder com treinos pré-definidos
             
             Backend Supabase totalmente funcional com migrations aplicadas.
             Sideload no Android.
-          files: dist/nadaaqui-1.0.3-fixed.apk
+          files: dist/nadaaqui-1.0.6-social.apk
           target_commitish: main
           make_latest: true
