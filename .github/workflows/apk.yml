@@ -25,16 +25,30 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-1.0.1-supabase-debug.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-1.0.2-gamification.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.1-supabase-debug
-          name: NadaAqui 1.0.1 — Supabase Debug
+          tag_name: v1.0.2-gamification
+          name: NadaAqui 1.0.2 — GymRats Gamification
           body: |
-            APK do `main` com debug logging ativado.
-            Este APK mostra logs de configuração no console para diagnosticar problemas.
+            Nova versão com funcionalidades GymRats implementadas:
+            
+            **Novidades:**
+            - Leaderboard por lugar (rankings de nadadores)
+            - Sistema de pontos e níveis gamificado
+            - Desafios de natação (challenges)
+            - Conquistas e achievements no perfil
+            - Tela de composição redesign fitness
+            
+            **Funcionalidades:**
+            - Ranking por piscina com top 3 em ouro/prata/bronze
+            - Sistema de pontos: 50pts/sessão, 10pts/100m, 30pts/streak, 20pts/check-in
+            - Níveis: Iniciante → Intermediário → Avançado → Expert → Mestre
+            - Desafios com diferentes tipos de meta (sessões, metros, minutos)
+            - Badges de conquistas dinâmicas
+            
             Backend Supabase totalmente funcional com migrations aplicadas.
             Sideload no Android.
-          files: dist/nadaaqui-1.0.1-supabase-debug.apk
+          files: dist/nadaaqui-1.0.2-gamification.apk
           target_commitish: main
           make_latest: true
