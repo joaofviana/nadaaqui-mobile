@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../screens/auth/login_screen.dart';
+import '../screens/challenges/challenges_screen.dart';
 import '../screens/checkin/checkin_tab_screen.dart';
 import '../screens/compose/compose_screen.dart';
 import '../screens/config/config_screen.dart';
 import '../screens/feed/feed_screen.dart';
 import '../screens/home/home_screen.dart';
+import '../screens/leaderboard/place_leaderboard_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/places/place_detail_screen.dart';
 import '../screens/places/places_screen.dart';
@@ -45,6 +47,11 @@ GoRouter createAppRouter() {
           );
         },
       ),
+      GoRoute(
+        path: '/desafios',
+        parentNavigatorKey: _rootKey,
+        builder: (context, state) => const ChallengesScreen(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return MainShell(navigationShell: navigationShell);
@@ -67,6 +74,19 @@ GoRouter createAppRouter() {
                       final id = state.pathParameters['placeId']!;
                       return PlaceDetailScreen(placeId: id);
                     },
+                    routes: [
+                      GoRoute(
+                        path: 'leaderboard',
+                        builder: (context, state) {
+                          final id = state.pathParameters['placeId']!;
+                          final name = state.uri.queryParameters['name'] ?? 'Local';
+                          return PlaceLeaderboardScreen(
+                            placeId: id,
+                            placeName: name,
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),

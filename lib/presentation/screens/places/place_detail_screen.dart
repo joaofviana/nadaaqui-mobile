@@ -310,6 +310,73 @@ class _PlaceDetailScreenState extends ConsumerState<PlaceDetailScreen> {
                         loading: () => const SizedBox(height: 40),
                         error: (_, __) => const SizedBox.shrink(),
                       ),
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              NadaTokens.of(context).accent.withValues(alpha: 0.15),
+                              NadaTokens.of(context).accent.withValues(alpha: 0.05),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: NadaTokens.of(context).accent.withValues(alpha: 0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: InkWell(
+                          onTap: () => context.push(
+                            '/mapa/place/${widget.placeId}/leaderboard?name=${Uri.encodeComponent(place.name)}',
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: NadaTokens.of(context).accent.withValues(alpha: 0.2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.emoji_events_outlined,
+                                  color: NadaTokens.of(context).accent,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Ranking de nadadores',
+                                      style: TextStyle(
+                                        color: NadaTokens.of(context).text,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Veja quem mais nadou aqui este mês',
+                                      style: TextStyle(
+                                        color: NadaTokens.of(context).textMuted,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.chevron_right,
+                                color: NadaTokens.of(context).textMuted,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                       _HairlineTile(
                         label: 'Horário',
                         value: _formatHours(place.openingHours),

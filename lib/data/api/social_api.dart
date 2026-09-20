@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/dio_client.dart';
+import '../../data/models/place_leaderboard.dart';
 import '../../presentation/providers/feed_store.dart';
 import '../../presentation/providers/swim_log_store.dart';
 
@@ -107,6 +108,31 @@ class SocialApi {
       streakDays: 0,
     );
     return (sessions, stats);
+  }
+
+  Future<PlaceLeaderboard?> getPlaceBoard(String placeId, {int limit = 10}) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/rpc/place_board',
+      data: {'p_place_id': placeId, 'p_limit': limit},
+    );
+    if (res.data == null) return null;
+    
+    final items = res.data?['items'] as List? ?? const [];
+    final entries = items.whereType<Map>().map((raw) {
+      final e = Map<String, dynamic>.from(raw);
+      return PlaceLeaderboardEntry(
+        userId: e['userId'] as String? ?? '',
+        displayName: e['displayName'] as String? ?? 'Nadador',
+        sessions: (e['sessions'] as num?)?.toInt() ?? 0,
+        minutes: (e['minutes'] as num?)?.toInt() ?? 0,
+        isYou: e['you'] == true,
+      );
+    }).toList();
+    
+    return PlaceLeaderboard(
+      placeId: placeId,
+      entries: entries,
+    );
   }
 
   FeedPost _postFromRpc(Map<String, dynamic> e) {
