@@ -48,7 +48,7 @@ Future<void> openCompose(
   );
 }
 
-/// Composer full-screen: fechar · texto · publicar. Sem chrome extra.
+/// Composer full-screen moderno inspirado em Instagram/Twitter
 class ComposeScreen extends ConsumerStatefulWidget {
   const ComposeScreen({
     super.key,
@@ -69,6 +69,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
   static const _maxChars = 280;
   final _text = TextEditingController();
   int _stars = 0;
+  bool _isPublishing = false;
 
   @override
   void initState() {
@@ -98,7 +99,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
   String get _title => switch (widget.kind) {
         ComposeKind.review => 'Avaliar',
         ComposeKind.checkIn => 'Check-in',
-        ComposeKind.post => 'Post',
+        ComposeKind.post => 'Nova publicação',
       };
 
   String get _cta => switch (widget.kind) {
@@ -108,19 +109,21 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
       };
 
   String get _hint => switch (widget.kind) {
-        ComposeKind.review => 'Como foi nadar aqui?',
-        ComposeKind.checkIn => 'Conta como está a água.',
-        ComposeKind.post => 'O que está rolando na água?',
+        ComposeKind.review => 'Como foi nadar aqui? Conte sua experiência...',
+        ComposeKind.checkIn => 'A água está ótima? Compartilhe com a comunidade!',
+        ComposeKind.post => 'O que está rolando na água? Compartilhe seu nado!',
       };
 
   String _initial(String? name) {
     final trimmed = name?.trim() ?? '';
-    if (trimmed.isEmpty) return 'V';
+    if (trimmed.isEmpty) return 'N';
     return trimmed.characters.first.toUpperCase();
   }
 
   Future<void> _publish() async {
-    if (!_canPublish) return;
+    if (!_canPublish || _isPublishing) return;
+    setState(() => _isPublishing = true);
+    
     final session = ref.read(sessionStoreProvider);
     final raw = session?.user.displayName.trim() ?? '';
     final name = raw.isEmpty ? 'Você' : raw;
@@ -131,6 +134,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
       ComposeKind.checkIn => FeedPostKind.checkIn,
       ComposeKind.post => FeedPostKind.text,
     };
+    
     try {
       await ref.read(feedStoreProvider.notifier).publish(
             FeedPost(
@@ -145,374 +149,235 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
               placeId: widget.placeId,
               placeName: widget.placeName,
               stars: widget.kind == ComposeKind.review ? _stars : null,
+              authorId: session?.user.id,
             ),
           );
+      if (!mounted) return;
+      context.go('/feed');
     } catch (_) {
       if (!mounted) return;
+      setState(() => _isPublishing = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Não foi possível publicar. Tente de novo.'),
+        SnackBar(
+          content: const Text('Não foi possível publicar. Tente de novo.'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
         ),
       );
-      return;
     }
-    if (!mounted) return;
-    context.go('/feed');
   }
 
   @override
   Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
     final left = _maxChars - _text.text.characters.length;
+    final session = ref.watch(sessionStoreProvider);
+    final userName = session?.user.displayName ?? 'Você';
+    
     return Scaffold(
       backgroundColor: t.bg,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    t.accent.withValues(alpha: 0.15),
-                    t.bg,
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+      appBar: AppBar(
+        backgroundColor: t.bg,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.close, color: t.text),
+          onPressed: () => context.pop(),
+        ),
+        title: Text(
+          _title,
+          style: TextStyle(
+            color: t.text,
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: ElevatedButton(
+              onPressed: _canPublish && !_isPublishing ? _publish : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _canPublish ? t.accent : t.surface2,
+                foregroundColor: _canPublish ? Colors.black : t.textMuted,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
                 ),
               ),
-              child: Row(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: t.surface,
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      tooltip: 'Fechar',
-                      onPressed: () => context.pop(),
-                      icon: Icon(Icons.close, color: t.text, size: 20),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      _title,
-                      textAlign: TextAlign.center,
+              child: _isPublishing
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                      ),
+                    )
+                  : Text(
+                      _cta,
                       style: TextStyle(
-                        color: t.text,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: _canPublish 
-                          ? LinearGradient(
-                              colors: [t.accent, t.accent.withValues(alpha: 0.8)],
-                            )
-                          : null,
-                      color: _canPublish ? null : t.surface2,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: _canPublish
-                          ? [
-                              BoxShadow(
-                                color: t.accent.withValues(alpha: 0.3),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ]
-                          : null,
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: _canPublish ? _publish : null,
-                        borderRadius: BorderRadius.circular(24),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 10,
-                          ),
-                          child: Text(
-                            _cta,
-                            style: TextStyle(
-                              color: _canPublish 
-                                  ? Colors.black 
-                                  : t.textMuted.withValues(alpha: 0.5),
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-                children: [
-                  if (widget.kind == ComposeKind.review) ...[
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            t.surface.withValues(alpha: 0.5),
-                            t.surface,
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: t.accent.withValues(alpha: 0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            'Sua nota',
-                            style: TextStyle(
-                              color: t.text,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(5, (i) {
-                              final n = i + 1;
-                              final on = n <= _stars;
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 6),
-                                child: GestureDetector(
-                                  onTap: () => setState(() => _stars = n),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: on 
-                                          ? AppColors.star.withValues(alpha: 0.2)
-                                          : t.surface2,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(
-                                      on ? Icons.star : Icons.star_border,
-                                      color: on ? AppColors.star : t.textMuted,
-                                      size: 28,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-                  if (widget.placeName != null &&
-                      widget.placeName!.isNotEmpty) ...[
-                    _PlaceChip(name: widget.placeName!),
-                    const SizedBox(height: 20),
-                  ],
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          t.surface.withValues(alpha: 0.3),
-                          t.surface.withValues(alpha: 0.1),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: t.hairline,
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF99F6E4), Color(0xFF5EEAD4)],
-                            ),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF99F6E4).withValues(alpha: 0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: CircleAvatar(
-                            radius: 24,
-                            backgroundColor: Colors.transparent,
-                            child: Text(
-                              _initial(
-                                ref.watch(sessionStoreProvider)?.user.displayName,
-                              ),
-                              style: const TextStyle(
-                                color: Color(0xFF0F766E),
-                                fontWeight: FontWeight.w800,
-                                fontSize: 18,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: TextField(
-                            controller: _text,
-                            maxLines: null,
-                            minLines: 5,
-                            maxLength: _maxChars,
-                            autofocus: true,
-                            style: TextStyle(
-                              color: t.text,
-                              fontSize: 17,
-                              height: 1.4,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: _hint,
-                              hintStyle: TextStyle(
-                                color: t.inputPlaceholder,
-                                fontSize: 17,
-                                fontWeight: FontWeight.w400,
-                              ),
-                              border: InputBorder.none,
-                              counterText: '',
-                              filled: false,
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              decoration: BoxDecoration(
-                color: t.bg,
-                boxShadow: [
-                  BoxShadow(
-                    color: t.surface.withValues(alpha: 0.1),
-                    blurRadius: 20,
-                    offset: const Offset(0, -4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  _FitnessActionButton(
-                    icon: Icons.image_outlined,
-                    label: 'Foto',
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Foto no post em breve')),
-                      );
-                    },
-                    color: t.accent,
-                  ),
-                  const SizedBox(width: 12),
-                  _FitnessActionButton(
-                    icon: Icons.emoji_emotions_outlined,
-                    label: 'Emoji',
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Emojis em breve')),
-                      );
-                    },
-                    color: const Color(0xFFFBBF24),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: left < 20 
-                          ? t.error.withValues(alpha: 0.15)
-                          : t.surface2,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '$left',
-                      style: TextStyle(
-                        color: left < 20 ? t.error : t.textMuted,
-                        fontSize: 13,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
+            ),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+                  // Avatar e input
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [t.accent, t.accent.withValues(alpha: 0.7)],
+                          ),
+                          shape: BoxShape.circle,
+                        ),
+                        child: CircleAvatar(
+                          radius: 20,
+                          backgroundColor: Colors.transparent,
+                          child: Text(
+                            _initial(userName),
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _text,
+                          maxLines: null,
+                          maxLength: _maxChars,
+                          autofocus: true,
+                          style: TextStyle(
+                            color: t.text,
+                            fontSize: 16,
+                            height: 1.5,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: _hint,
+                            hintStyle: TextStyle(
+                              color: t.textMuted.withValues(alpha: 0.6),
+                              fontSize: 16,
+                            ),
+                            border: InputBorder.none,
+                            counterText: '',
+                            filled: false,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  // Rating stars para review
+                  if (widget.kind == ComposeKind.review) ...[
+                    const SizedBox(height: 16),
+                    Row(
+                      children: List.generate(5, (i) {
+                        final n = i + 1;
+                        final on = n <= _stars;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: GestureDetector(
+                            onTap: () => setState(() => _stars = n),
+                            child: Icon(
+                              on ? Icons.star : Icons.star_border,
+                              color: on ? t.accent : t.textMuted,
+                              size: 32,
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
+                  
+                  // Place chip
+                  if (widget.placeName != null && widget.placeName!.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    _ModernPlaceChip(name: widget.placeName!),
+                  ],
+                  
+                  // Character counter
+                  const SizedBox(height: 8),
+                  Text(
+                    '$left caracteres restantes',
+                    style: TextStyle(
+                      color: left < 20 ? t.error : t.textMuted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PlaceChip extends StatelessWidget {
-  const _PlaceChip({required this.name});
-
-  final String name;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = NadaTokens.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            t.accent.withValues(alpha: 0.15),
-            t.accent.withValues(alpha: 0.05),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: t.accent.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: t.accent.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.place_outlined, size: 16, color: t.accent),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: t.text,
-                fontWeight: FontWeight.w700,
-                fontSize: 15,
+          
+          // Bottom toolbar
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: t.bg,
+              border: Border(
+                top: BorderSide(color: t.hairline),
               ),
+            ),
+            child: Row(
+              children: [
+                _ToolbarButton(
+                  icon: Icons.image_outlined,
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('📸 Fotos nos posts em breve!'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
+                _ToolbarButton(
+                  icon: Icons.gif_box_outlined,
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('🎬 GIFs em breve!'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
+                _ToolbarButton(
+                  icon: Icons.emoji_emotions_outlined,
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('😀 Emojis em breve!'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                ),
+                const Spacer(),
+              ],
             ),
           ),
         ],
@@ -521,54 +386,58 @@ class _PlaceChip extends StatelessWidget {
   }
 }
 
-class _FitnessActionButton extends StatelessWidget {
-  const _FitnessActionButton({
+class _ModernPlaceChip extends StatelessWidget {
+  const _ModernPlaceChip({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = NadaTokens.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: t.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: t.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.place_outlined, size: 16, color: t.accent),
+          const SizedBox(width: 6),
+          Text(
+            name,
+            style: TextStyle(
+              color: t.text,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToolbarButton extends StatelessWidget {
+  const _ToolbarButton({
     required this.icon,
-    required this.label,
     required this.onTap,
-    required this.color,
   });
 
   final IconData icon;
-  final String label;
   final VoidCallback onTap;
-  final Color color;
 
   @override
   Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              color.withValues(alpha: 0.15),
-              color.withValues(alpha: 0.05),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: color.withValues(alpha: 0.3),
-            width: 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: t.text,
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
+        padding: const EdgeInsets.all(8),
+        child: Icon(icon, color: t.accent, size: 24),
       ),
     );
   }
