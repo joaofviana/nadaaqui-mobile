@@ -48,8 +48,8 @@ final placesListProvider =
   if (loc.showDeniedBanner) {
     return repo.listByCity(
       citySlug: 'sao-paulo',
-      priceType: priceType,
-      totalPass: totalPass,
+      priceType: priceType?.isNotEmpty == true ? priceType : null,
+      totalPass: totalPass?.isNotEmpty == true ? totalPass : null,
     );
   }
 
@@ -57,20 +57,23 @@ final placesListProvider =
     return repo.listNearby(
       lat: loc.lat!,
       lng: loc.lng!,
-      priceType: priceType,
-      totalPass: totalPass,
+      priceType: priceType?.isNotEmpty == true ? priceType : null,
+      totalPass: totalPass?.isNotEmpty == true ? totalPass : null,
     );
   }
 
   if (!loc.isGranted) {
     return repo.listByCity(
       citySlug: 'sao-paulo',
-      priceType: priceType,
-      totalPass: totalPass,
+      priceType: priceType?.isNotEmpty == true ? priceType : null,
+      totalPass: totalPass?.isNotEmpty == true ? totalPass : null,
     );
   }
 
-  return repo.listNearQa(priceType: priceType, totalPass: totalPass);
+  return repo.listNearQa(
+    priceType: priceType?.isNotEmpty == true ? priceType : null,
+    totalPass: totalPass?.isNotEmpty == true ? totalPass : null,
+  );
 });
 
 /// Mapa (guest OK): placeholder + sheet; GPS denied → banner + fallback bairro.
