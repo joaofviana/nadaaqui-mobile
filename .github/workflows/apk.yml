@@ -25,30 +25,30 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-1.0.2-gamification.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-1.0.3-fixed.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.2-gamification
-          name: NadaAqui 1.0.2 — GymRats Gamification
+          tag_name: v1.0.3-fixed
+          name: NadaAqui 1.0.3 — Navigation Fixed
           body: |
-            Nova versão com funcionalidades GymRats implementadas:
+            APK com correção do erro de navegação "GoError there is nothing to pop".
             
-            **Novidades:**
+            **Correções:**
+            - Revertido ProviderScope manual que causava erro de navegação
+            - Restaurado padrão padrão ProviderScope do Flutter Riverpod
+            - Autenticação temporariamente desabilitada para debug
+            - Testes unitários restaurados ao padrão original
+            
+            **Funcionalidades GymRats mantidas:**
             - Leaderboard por lugar (rankings de nadadores)
             - Sistema de pontos e níveis gamificado
             - Desafios de natação (challenges)
             - Conquistas e achievements no perfil
             - Tela de composição redesign fitness
-            
-            **Funcionalidades:**
-            - Ranking por piscina com top 3 em ouro/prata/bronze
-            - Sistema de pontos: 50pts/sessão, 10pts/100m, 30pts/streak, 20pts/check-in
-            - Níveis: Iniciante → Intermediário → Avançado → Expert → Mestre
-            - Desafios com diferentes tipos de meta (sessões, metros, minutos)
-            - Badges de conquistas dinâmicas
+            - Workout builder com exercícios de natação
             
             Backend Supabase totalmente funcional com migrations aplicadas.
             Sideload no Android.
-          files: dist/nadaaqui-1.0.2-gamification.apk
+          files: dist/nadaaqui-1.0.3-fixed.apk
           target_commitish: main
           make_latest: true
