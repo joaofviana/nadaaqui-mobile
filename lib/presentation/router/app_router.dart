@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../screens/auth/login_screen.dart';
@@ -13,6 +14,7 @@ import '../screens/places/places_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/workout/workout_builder_screen.dart';
 import '../shell/main_shell.dart';
+import '../../core/session/session_store.dart';
 
 final GlobalKey<NavigatorState> _rootKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _mapaKey = GlobalKey<NavigatorState>();
@@ -20,10 +22,27 @@ final GlobalKey<NavigatorState> _feedKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _treinoKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _perfilKey = GlobalKey<NavigatorState>();
 
-GoRouter createAppRouter() {
+GoRouter createAppRouter(ProviderContainer container) {
   return GoRouter(
     navigatorKey: _rootKey,
     initialLocation: '/mapa',
+    redirect: (context, state) {
+      final session = container.read(sessionStoreProvider);
+      final isAuthenticated = session?.accessToken.isNotEmpty == true;
+      final isAuthRoute = state.matchedLocation == '/entrar';
+      
+      // Se não está autenticado e não está na tela de login, vai para login
+      if (!isAuthenticated && !isAuthRoute) {
+        return '/entrar';
+      }
+      
+      // Se está autenticado e está na tela de login, vai para o app
+      if (isAuthenticated && isAuthRoute) {
+        return '/mapa';
+      }
+      
+      return null;
+    },
     routes: [
       GoRoute(
         path: '/entrar',
