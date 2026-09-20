@@ -6,6 +6,8 @@ import '../../providers/feed_store.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/brand_wordmark.dart';
 import '../../widgets/guest_gate.dart';
+import '../../widgets/streak_counter.dart';
+import '../../../core/session/session_store.dart';
 import '../compose/compose_screen.dart';
 import '../comments/comments_screen.dart';
 
@@ -17,6 +19,7 @@ class FeedScreen extends ConsumerWidget {
     final t = NadaTokens.of(context);
     final feed = ref.watch(feedStoreProvider);
     final posts = feed.posts;
+    final session = ref.watch(sessionStoreProvider);
     return Scaffold(
       backgroundColor: t.bg,
       floatingActionButton: FloatingActionButton(

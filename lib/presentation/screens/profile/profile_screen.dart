@@ -10,6 +10,7 @@ import '../../providers/swim_log_store.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/brand_wordmark.dart';
 import '../../widgets/guest_gate.dart';
+import '../../widgets/streak_counter.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -75,7 +76,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               const SizedBox(height: 4),
               Text(user.email, style: const TextStyle(color: AppColors.muted)),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
+              StreakCounter(
+                streakDays: stats.streakDays,
+                onTap: () {
+                  // TODO: Navegar para tela de detalhes de streak
+                },
+              ),
+              const SizedBox(height: 16),
               TextButton(
                 onPressed: _loggingOut ? null : _logout,
                 child: _loggingOut
