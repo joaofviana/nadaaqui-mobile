@@ -32,7 +32,7 @@ class PlacesRepository {
       lng: lng,
       priceType: priceType,
       totalPass: totalPass,
-      limit: 200, // Aumentado para mostrar todas as piscinas
+      limit: 50, // Limite padrão para evitar erros
     );
   }
 
@@ -45,7 +45,7 @@ class PlacesRepository {
       lng: QaGps.lng,
       priceType: priceType,
       totalPass: totalPass,
-      limit: 200, // Aumentado para mostrar todas as piscinas
+      limit: 50, // Limite padrão para evitar erros
     );
   }
 
@@ -59,7 +59,7 @@ class PlacesRepository {
       citySlug: citySlug,
       priceType: priceType,
       totalPass: totalPass,
-      limit: 200, // Aumentado para mostrar todas as piscinas
+      limit: 50, // Limite padrão para evitar erros
     );
   }
 
