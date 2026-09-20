@@ -7,6 +7,7 @@ import '../../theme/app_colors.dart';
 import '../../widgets/brand_wordmark.dart';
 import '../../widgets/guest_gate.dart';
 import '../compose/compose_screen.dart';
+import '../comments/comments_screen.dart';
 
 class FeedScreen extends ConsumerWidget {
   const FeedScreen({super.key});
@@ -27,10 +28,39 @@ class FeedScreen extends ConsumerWidget {
           SafeArea(
             bottom: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
+              padding: const EdgeInsets.fromLTRB(20, 8, 16, 0),
               child: Row(
                 children: [
                   const Expanded(child: BrandWordmark(height: 28)),
+                  IconButton(
+                    tooltip: 'Notificações',
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('🔔 Notificações em breve!'),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                    icon: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Icon(Icons.notifications_outlined, color: t.text),
+                        Positioned(
+                          right: -2,
+                          top: -2,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: t.accent,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   IconButton(
                     tooltip: 'Buscar locais',
                     onPressed: () => context.go('/mapa/explorar'),
@@ -304,11 +334,18 @@ class _Actions extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Row(
       children: [
-        const Icon(Icons.chat_bubble_outline, size: 16, color: AppColors.muted),
-        const SizedBox(width: 4),
-        Text(
-          '${post.comments}',
-          style: const TextStyle(color: AppColors.muted, fontSize: 12),
+        InkWell(
+          onTap: () => context.push('/post/${post.id}/comments'),
+          child: Row(
+            children: [
+              const Icon(Icons.chat_bubble_outline, size: 16, color: AppColors.muted),
+              const SizedBox(width: 4),
+              Text(
+                '${post.comments}',
+                style: const TextStyle(color: AppColors.muted, fontSize: 12),
+              ),
+            ],
+          ),
         ),
         const SizedBox(width: 20),
         InkWell(

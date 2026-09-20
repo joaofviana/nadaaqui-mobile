@@ -60,10 +60,23 @@ class PublicProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
+  UserProfile _profile = mockUserProfile;
+
+  void _toggleFollow() {
+    setState(() {
+      _profile = _profile.copyWith(
+        isFollowing: !_profile.isFollowing,
+        followers: _profile.isFollowing 
+            ? _profile.followers - 1 
+            : _profile.followers + 1,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
-    final profile = mockUserProfile;
+    final profile = _profile;
 
     return Scaffold(
       backgroundColor: t.bg,
@@ -129,11 +142,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                       ),
                       const SizedBox(width: 16),
                       OutlinedButton(
-                        onPressed: () {
-                          setState(() {
-                            // Toggle follow (mock)
-                          });
-                        },
+                        onPressed: _toggleFollow,
                         style: OutlinedButton.styleFrom(
                           foregroundColor: profile.isFollowing ? t.textMuted : t.accent,
                           side: BorderSide(

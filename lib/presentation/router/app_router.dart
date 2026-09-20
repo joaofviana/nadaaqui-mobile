@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../screens/auth/login_screen.dart';
 import '../screens/challenges/challenges_screen.dart';
+import '../screens/comments/comments_screen.dart';
 import '../screens/compose/compose_screen.dart';
 import '../screens/config/config_screen.dart';
 import '../screens/feed/feed_screen.dart';
@@ -64,6 +65,14 @@ GoRouter createAppRouter() {
         builder: (context, state) {
           final userId = state.pathParameters['userId']!;
           return PublicProfileScreen(userId: userId);
+        },
+      ),
+      GoRoute(
+        path: '/post/:postId/comments',
+        parentNavigatorKey: _rootKey,
+        builder: (context, state) {
+          final postId = state.pathParameters['postId']!;
+          return CommentsScreen(postId: postId);
         },
       ),
       StatefulShellRoute.indexedStack(
