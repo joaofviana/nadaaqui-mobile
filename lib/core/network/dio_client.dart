@@ -26,10 +26,12 @@ Dio createDio(Ref ref) {
         if (ApiConfig.useSupabase) {
           final anon = ApiConfig.supabaseAnonKey;
           options.headers['apikey'] = anon;
-          final bearer = (sessionToken != null && sessionToken.isNotEmpty)
-              ? sessionToken
-              : anon;
-          options.headers['Authorization'] = 'Bearer $bearer';
+          // DEBUG: Force anon only to test 400 error
+          options.headers['Authorization'] = 'Bearer $anon';
+          // final bearer = (sessionToken != null && sessionToken.isNotEmpty)
+          //     ? sessionToken
+          //     : anon;
+          // options.headers['Authorization'] = 'Bearer $bearer';
         } else if (sessionToken != null && sessionToken.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $sessionToken';
         }
