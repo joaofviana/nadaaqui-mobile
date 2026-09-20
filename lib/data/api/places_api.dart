@@ -27,15 +27,15 @@ class PlacesApi {
         if (lat != null) 'p_lat': lat,
         if (lng != null) 'p_lng': lng,
         if (radiusMeters != null) 'p_radius_meters': radiusMeters,
+        if (bbox != null) 'p_bbox': bbox,
         if (citySlug != null) 'p_city_slug': citySlug,
-        // Temporarily remove array parameters to test 400 error
-        // if (priceType != null && priceType.isNotEmpty) 'p_price_types': priceType,
-        // if (totalPass != null && totalPass.isNotEmpty) 'p_total_pass': totalPass,
+        if (priceType != null && priceType.isNotEmpty) 'p_price_types': priceType,
+        if (totalPass != null && totalPass.isNotEmpty) 'p_total_pass': totalPass,
         if (limit != null) 'p_limit': limit,
         if (offset != null) 'p_offset': offset,
       };
       final res = await _dio.post<dynamic>(
-        '/rpc/nearby_places_simple', // Using simplified version for testing
+        '/rpc/nearby_places',
         data: body,
       );
       final raw = res.data;
