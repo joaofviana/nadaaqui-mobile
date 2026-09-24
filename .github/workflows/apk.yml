@@ -13,6 +13,8 @@ jobs:
       - name: Get timestamp
         id: timestamp
         run: echo "ts=$(date +%Y%m%d%H%M)" >> $GITHUB_OUTPUT
+      - name: Apply Dive app icon
+        run: python3 tool/scripts/apply_dive_icon.py
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -28,41 +30,24 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-1.0.11-fix-gps-arrays.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-1.0.12-dive-icon.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.11-fix-gps-arrays-${{ steps.timestamp.outputs.ts }}
-          name: NadaAqui 1.0.11 — Fix GPS Arrays 400 Error
+          tag_name: v1.0.12-dive-icon-${{ steps.timestamp.outputs.ts }}
+          name: NadaAqui 1.0.12 — Logo Dive
           body: |
-            Versão com correção do erro 400 quando GPS é negado!
-            
-            **Root Cause Identified:**
-            - User reported error 400 started when GPS permission was denied
-            - When GPS denied, app falls back to listByCity with city slug
-            - Was sending empty arrays [] for priceType and totalPass when filter is "all"
-            - Empty arrays cause 400 error in Supabase RPC
-            
-            **Fix Applied:**
-            - Check if arrays are not empty before sending
-            - Pass null instead of empty arrays to avoid 400 error
-            - Applied to all three fallback paths in places_screen.dart
-            
-            **Test:**
-            - 21/21 tests passing
-            - Should fix 400 error when GPS is denied on first use
-            - User should allow GPS permission when prompted
-            
-            **Funcionalidades Anteriores:**
-            - Login-First (v1.0.7)
-            - Social UI (v1.0.6)
-            - Streak Counter
-            - Perfil público com calendário
-            - Sistema de comentários
-            - Sistema de follows
-            - 6 novas piscinas (Mooca, Vila Prudente, Sacoma)
-            
-            Backend Supabase totalmente funcional com migrations aplicadas.
-            Sideload no Android.
-          files: dist/nadaaqui-1.0.11-fix-gps-arrays.apk
+            Novo ícone do app (logo Dive — mergulhador + ondas ciano).
+
+            **Home**
+            - Carousel Piscinas próximas
+            - Perto de você
+            - FAB +
+
+            **Backend**
+            - nearby_places corrigido (sem id ambíguo)
+            - Supabase live conectado
+
+            Sideload no Android. Após instalar, o ícone na tela inicial muda para o mergulhador.
+          files: dist/nadaaqui-1.0.12-dive-icon.apk
           target_commitish: main
           make_latest: true
