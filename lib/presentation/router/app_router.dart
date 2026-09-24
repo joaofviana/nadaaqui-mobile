@@ -10,12 +10,14 @@ import '../screens/config/config_screen.dart';
 import '../screens/feed/feed_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/leaderboard/place_leaderboard_screen.dart';
+import '../screens/onboarding/onboarding_screen.dart';
 import '../screens/places/place_detail_screen.dart';
 import '../screens/places/places_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/profile/public_profile_screen.dart';
 import '../screens/workout/workout_builder_screen.dart';
 import '../shell/main_shell.dart';
+import '../../core/onboarding/onboarding_store.dart';
 import '../../core/session/session_store.dart';
 
 final GlobalKey<NavigatorState> _rootKey = GlobalKey<NavigatorState>();
@@ -24,36 +26,55 @@ final GlobalKey<NavigatorState> _feedKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _treinoKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _perfilKey = GlobalKey<NavigatorState>();
 
-/// Provider para o router que monitora autenticação
+/// Provider para o router que monitora autenticação + onboarding
 final routerProvider = Provider<GoRouter>((ref) {
   return createAppRouter(ref);
 });
 
 GoRouter createAppRouter(Ref ref) {
   final sessionStore = ref.watch(sessionStoreProvider.notifier);
-  
+  final onboardingStore = ref.watch(onboardingStoreProvider.notifier);
+
   return GoRouter(
     navigatorKey: _rootKey,
-    initialLocation: '/entrar',
-    refreshListenable: sessionStore,
+    initialLocation: '/onboarding',
+    refreshListenable: _RouterRefresh(sessionStore, onboardingStore),
     redirect: (context, state) {
       final session = ref.read(sessionStoreProvider);
+      final onboarding = ref.read(onboardingStoreProvider);
       final isAuthenticated = session?.accessToken.isNotEmpty == true;
-      final isAuthRoute = state.matchedLocation == '/entrar';
-      
-      // Se não está autenticado e não está na tela de login, vai para login
-      if (!isAuthenticated && !isAuthRoute) {
+      final loc = state.matchedLocation;
+      final isAuthRoute = loc == '/entrar';
+      final isOnboarding = loc == '/onboarding';
+
+      // Aguarda hidratar SharedPreferences do onboarding
+      if (!onboarding.hydrated && !isAuthenticated) {
+        return isOnboarding ? null : '/onboarding';
+      }
+
+      // Onboarding ainda não visto → força fluxo
+      if (!onboarding.done && !isAuthenticated) {
+        return isOnboarding ? null : '/onboarding';
+      }
+
+      // Já viu onboarding e não logado → login
+      if (onboarding.done && !isAuthenticated && !isAuthRoute) {
         return '/entrar';
       }
-      
-      // Se está autenticado e está na tela de login, vai para o app
-      if (isAuthenticated && isAuthRoute) {
+
+      // Logado na tela de login ou onboarding → app
+      if (isAuthenticated && (isAuthRoute || isOnboarding)) {
         return '/mapa';
       }
-      
+
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/onboarding',
+        parentNavigatorKey: _rootKey,
+        builder: (context, state) => const OnboardingScreen(),
+      ),
       GoRoute(
         path: '/entrar',
         parentNavigatorKey: _rootKey,
@@ -122,7 +143,8 @@ GoRouter createAppRouter(Ref ref) {
                         path: 'leaderboard',
                         builder: (context, state) {
                           final id = state.pathParameters['placeId']!;
-                          final name = state.uri.queryParameters['name'] ?? 'Local';
+                          final name =
+                              state.uri.queryParameters['name'] ?? 'Local';
                           return PlaceLeaderboardScreen(
                             placeId: id,
                             placeName: name,
@@ -176,4 +198,22 @@ GoRouter createAppRouter(Ref ref) {
       ),
     ],
   );
+}
+
+/// Combina ChangeNotifiers de sessão + onboarding para o GoRouter.
+class _RouterRefresh extends ChangeNotifier {
+  _RouterRefresh(this._session, this._onboarding) {
+    _session.addListener(notifyListeners);
+    _onboarding.addListener(notifyListeners);
+  }
+
+  final SessionStore _session;
+  final OnboardingStore _onboarding;
+
+  @override
+  void dispose() {
+    _session.removeListener(notifyListeners);
+    _onboarding.removeListener(notifyListeners);
+    super.dispose();
+  }
 }
