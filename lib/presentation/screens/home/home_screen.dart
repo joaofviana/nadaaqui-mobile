@@ -11,10 +11,11 @@ import '../../../data/repositories/places_repository.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/brand_wordmark.dart';
 import '../../widgets/distance_chip.dart';
-import '../../widgets/guest_gate.dart';
 import '../../widgets/live_backend_banner.dart';
 import '../../widgets/place_photo.dart';
 import 'nearby_pool_mock.dart';
+
+part 'home_screen_cards.dart';
 
 final homePlacesProvider =
     FutureProvider.autoDispose<List<Place>>((ref) async {
@@ -73,7 +74,6 @@ NearbyPoolMock _cardFromPlace(
   );
 }
 
-/// HOME IA — Piscinas próximas (tab Mapa / discovery). Ver HOME-IA.md.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -110,7 +110,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final useLive = ApiConfig.useSupabase;
     List<NearbyPoolMock> pools = const [];
     List<NearbyPoolMock> nearby = const [];
-    List<TrendMock> trends = const [];
     if (useLive) {
       final items = liveAsync.asData?.value ?? const <Place>[];
       final cards = items
@@ -127,7 +126,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     } else if (ApiConfig.forceMock) {
       pools = kMockNearbyPools;
       nearby = kMockPertoDeVoce;
-      trends = kMockEmAlta;
     }
 
     return Scaffold(
