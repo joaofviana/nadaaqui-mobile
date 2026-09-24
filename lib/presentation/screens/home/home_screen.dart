@@ -6,16 +6,11 @@ import 'package:go_router/go_router.dart';
 import '../../../core/config/api_config.dart';
 import '../../../core/location/location_controller.dart';
 import '../../../data/models/place.dart';
-import '../../../data/repositories/config_repository.dart';
 import '../../../data/repositories/places_repository.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/brand_wordmark.dart';
-import '../../widgets/distance_chip.dart';
 import '../../widgets/live_backend_banner.dart';
 import '../../widgets/place_photo.dart';
-import 'nearby_pool_mock.dart';
-
-part 'home_screen_cards.dart';
 
 final homePlacesProvider =
     FutureProvider.autoDispose<List<Place>>((ref) async {
@@ -37,42 +32,11 @@ final homePlacesProvider =
 
   try {
     return await byCity();
-  } catch (e) {
-    try {
-      final res = await repo.listNearQa();
-      return res.items;
-    } catch (_) {
-      rethrow;
-    }
+  } catch (_) {
+    final res = await repo.listNearQa();
+    return res.items;
   }
 });
-
-NearbyPoolMock _cardFromPlace(
-  Place p, {
-  required int? checkInRadiusMeters,
-  required bool hasGpsFix,
-}) {
-  return NearbyPoolMock(
-    name: p.name,
-    distanceMeters: hasGpsFix ? p.distanceMeters : null,
-    tipo: switch (p.placeType) {
-      PlaceType.pool => 'Piscina',
-      PlaceType.club => 'Clube',
-      PlaceType.beach => 'Praia',
-      _ => 'Tanque',
-    },
-    accessLabel: p.priceType == PriceType.free
-        ? 'Grátis'
-        : p.totalPass == TotalPass.yes
-            ? 'Total Pass'
-            : 'Pago',
-    totalPass: p.totalPass == TotalPass.yes,
-    placeId: p.id,
-    photoUrl: p.thumbnailUrl,
-    checkInRadiusMeters: checkInRadiusMeters,
-    showPresence: false,
-  );
-}
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -82,9 +46,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  final _pageCtrl = PageController(viewportFraction: 0.92);
-  int _page = 0;
-
   @override
   void initState() {
     super.initState();
@@ -94,39 +55,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   @override
-  void dispose() {
-    _pageCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
     final liveAsync = ref.watch(homePlacesProvider);
-    final loc = ref.watch(locationControllerProvider);
-    final cfgAsync = ref.watch(remoteConfigProvider);
-    final radius = cfgAsync.asData?.value.checkInRadiusMeters;
-    final hasGpsFix = loc.isGranted && loc.lat != null && loc.lng != null;
     final useLive = ApiConfig.useSupabase;
-    List<NearbyPoolMock> pools = const [];
-    List<NearbyPoolMock> nearby = const [];
-    if (useLive) {
-      final items = liveAsync.asData?.value ?? const <Place>[];
-      final cards = items
-          .map(
-            (p) => _cardFromPlace(
-              p,
-              checkInRadiusMeters: radius,
-              hasGpsFix: hasGpsFix,
-            ),
-          )
-          .toList();
-      pools = cards;
-      nearby = cards.length > 3 ? cards.sublist(0, 3) : cards;
-    } else if (ApiConfig.forceMock) {
-      pools = kMockNearbyPools;
-      nearby = kMockPertoDeVoce;
-    }
 
     return Scaffold(
       backgroundColor: t.bg,
@@ -145,13 +77,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       const Expanded(child: BrandWordmark(height: 30)),
                       if (kDebugMode)
                         Text(
-                          ApiConfig.useSupabase
-                              ? 'LIVE'
-                              : ApiConfig.forceMock
-                                  ? 'MOCK'
-                                  : 'OFF',
+                          useLive ? 'LIVE' : 'OFF',
                           style: TextStyle(
-                            color: ApiConfig.useSupabase ? t.accent : t.error,
+                            color: useLive ? t.accent : t.error,
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
                           ),
@@ -160,7 +88,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
               ),
-              SliVER_PLACEHOLDER_REMOVE
+              SliVER_DONE
             ],
           ),
         ),
