@@ -6,6 +6,7 @@ import '../../providers/feed_store.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/guest_gate.dart';
 import '../../../core/session/session_store.dart';
+import '../../../data/models/auth_session.dart';
 import '../compose/compose_screen.dart';
 
 /// Abas do Feed no estilo da captura: Clubes | Explorar | Seguindo.
@@ -36,7 +37,6 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             bottom: false,
             child: Column(
               children: [
-                // Topo: busca · Feed · notificações
                 Padding(
                   padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
                   child: Row(
@@ -94,7 +94,6 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                     ],
                   ),
                 ),
-                // Abas: Clubes | Explorar | Seguindo
                 Padding(
                   padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
                   child: Row(
@@ -135,9 +134,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
   Widget _buildBody(
     NadaTokens t,
-    FeedState feed,
+    FeedUiState feed,
     List<FeedPost> posts,
-    dynamic session,
+    AuthSession? session,
   ) {
     if (_tab == FeedTab.clubes) {
       return const _WorkingOnScreen(
@@ -156,7 +155,6 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       );
     }
 
-    // Explorar — feed atual
     if (feed.loading) {
       return const Center(child: CircularProgressIndicator());
     }
