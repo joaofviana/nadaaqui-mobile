@@ -1,4 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/config/api_config.dart';
+import '../../data/api/workout_api.dart';
 
 enum PoolLength { m25, m50 }
 
@@ -99,7 +104,6 @@ class SavedWorkout {
 
   int get estimatedMinutes {
     final m = totalMeters;
-    // ~2 min / 100m + buffer
     return ((m / 100) * 2).round().clamp(15, 120);
   }
 }
@@ -111,6 +115,8 @@ class WorkoutDraft {
     this.focus = WorkoutFocus.tecnica,
     this.blocks = const [],
     this.saved = const [],
+    this.loading = false,
+    this.error,
   });
 
   final String name;
@@ -118,6 +124,8 @@ class WorkoutDraft {
   final WorkoutFocus focus;
   final List<WorkoutBlock> blocks;
   final List<SavedWorkout> saved;
+  final bool loading;
+  final String? error;
 
   int get totalMeters =>
       blocks.fold(0, (sum, b) => sum + b.totalMeters);
@@ -134,6 +142,9 @@ class WorkoutDraft {
     WorkoutFocus? focus,
     List<WorkoutBlock>? blocks,
     List<SavedWorkout>? saved,
+    bool? loading,
+    String? error,
+    bool clearError = false,
   }) {
     return WorkoutDraft(
       name: name ?? this.name,
@@ -141,6 +152,8 @@ class WorkoutDraft {
       focus: focus ?? this.focus,
       blocks: blocks ?? this.blocks,
       saved: saved ?? this.saved,
+      loading: loading ?? this.loading,
+      error: clearError ? null : (error ?? this.error),
     );
   }
 }
@@ -232,7 +245,26 @@ const catalogExercises = <CatalogExercise>[
 
 class WorkoutDraftStore extends Notifier<WorkoutDraft> {
   @override
-  WorkoutDraft build() => const WorkoutDraft();
+  WorkoutDraft build() {
+    if (ApiConfig.useSupabase) {
+      unawaited(reloadSaved());
+      return const WorkoutDraft(loading: true);
+    }
+    return const WorkoutDraft();
+  }
+
+  Future<void> reloadSaved() async {
+    if (!ApiConfig.useSupabase) return;
+    try {
+      final list = await ref.read(workoutApiProvider).listMyWorkouts();
+      state = state.copyWith(saved: list, loading: false, clearError: true);
+    } catch (_) {
+      state = state.copyWith(
+        loading: false,
+        error: 'Não foi possível carregar seus treinos.',
+      );
+    }
+  }
 
   void setName(String name) => state = state.copyWith(name: name);
 
@@ -242,6 +274,15 @@ class WorkoutDraftStore extends Notifier<WorkoutDraft> {
 
   void resetDraft() {
     state = WorkoutDraft(saved: state.saved);
+  }
+
+  void loadSavedIntoDraft(SavedWorkout w) {
+    state = state.copyWith(
+      name: w.name,
+      pool: w.pool,
+      focus: w.focus,
+      blocks: List.of(w.blocks),
+    );
   }
 
   void addFromCatalog(CatalogExercise ex) {
@@ -272,7 +313,6 @@ class WorkoutDraftStore extends Notifier<WorkoutDraft> {
     );
   }
 
-  /// Preenche um treino demo completo (resumo da captura).
   void seedDemoBlocks() {
     state = state.copyWith(
       name: 'Treino Crawl & Resistência',
@@ -317,8 +357,30 @@ class WorkoutDraftStore extends Notifier<WorkoutDraft> {
     );
   }
 
-  void saveCurrent() {
-    if (state.blocks.isEmpty) return;
+  /// Salva no Supabase (ou só em memória se mock).
+  Future<SavedWorkout?> saveCurrent() async {
+    if (state.blocks.isEmpty) return null;
+
+    if (ApiConfig.useSupabase) {
+      try {
+        final saved = await ref.read(workoutApiProvider).saveWorkout(
+              name: state.name,
+              pool: state.pool,
+              focus: state.focus,
+              blocks: state.blocks,
+            );
+        state = state.copyWith(
+          saved: [saved, ...state.saved.where((s) => s.id != saved.id)],
+          blocks: const [],
+          clearError: true,
+        );
+        return saved;
+      } catch (_) {
+        state = state.copyWith(error: 'Falha ao salvar treino no servidor.');
+        return null;
+      }
+    }
+
     final w = SavedWorkout(
       id: 'sw-${DateTime.now().millisecondsSinceEpoch}',
       name: state.name,
@@ -330,6 +392,32 @@ class WorkoutDraftStore extends Notifier<WorkoutDraft> {
     state = state.copyWith(
       saved: [w, ...state.saved],
       blocks: const [],
+    );
+    return w;
+  }
+
+  Future<bool> startSaved(String planId) async {
+    if (!ApiConfig.useSupabase) return true;
+    try {
+      await ref.read(workoutApiProvider).startWorkout(planId: planId);
+      return true;
+    } catch (_) {
+      state = state.copyWith(error: 'Não foi possível iniciar o treino.');
+      return false;
+    }
+  }
+
+  Future<void> deleteSaved(String planId) async {
+    if (ApiConfig.useSupabase) {
+      try {
+        await ref.read(workoutApiProvider).deleteWorkout(planId);
+      } catch (_) {
+        state = state.copyWith(error: 'Falha ao apagar treino.');
+        return;
+      }
+    }
+    state = state.copyWith(
+      saved: state.saved.where((s) => s.id != planId).toList(),
     );
   }
 }
