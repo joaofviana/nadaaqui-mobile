@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- diver body -->
+    <path
+        android:pathData="M28,42 C32,38 38,36 44,38 C50,40 56,44 62,48 C68,52 74,54 80,52 C78,56 74,60 68,62 C62,64 56,62 50,58 C44,54 38,50 34,48 C30,46 28,44 28,42 Z"
+        android:strokeWidth="2.2"
+        android:strokeColor="#FFFFFF"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"/>
+    <!-- head -->
+    <path
+        android:pathData="M30,40 m-3.5,0 a3.5,3.5 0 1,0 7,0 a3.5,3.5 0 1,0 -7,0"
+        android:strokeWidth="2"
+        android:strokeColor="#FFFFFF"
+        android:fillColor="#00000000"/>
+    <!-- arm forward -->
+    <path
+        android:pathData="M36,44 L22,52"
+        android:strokeWidth="2.2"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"/>
+    <!-- arm back -->
+    <path
+        android:pathData="M58,48 L72,42"
+        android:strokeWidth="2.2"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"/>
+    <!-- legs -->
+    <path
+        android:pathData="M62,54 L78,68 M66,52 L70,70"
+        android:strokeWidth="2.2"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"/>
+    <!-- diving board -->
+    <path
+        android:pathData="M78,70 L92,70 L92,78"
+        android:strokeWidth="2"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"/>
+    <!-- cyan waves -->
+    <path
+        android:pathData="M12,82 Q20,76 28,82 Q36,88 44,82 Q52,76 60,82 Q68,88 76,82 Q84,76 92,82 Q100,88 108,82"
+        android:strokeWidth="2.5"
+        android:strokeColor="#00D4FF"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"/>
+    <path
+        android:pathData="M12,90 Q20,84 28,90 Q36,96 44,90 Q52,84 60,90 Q68,96 76,90 Q84,84 92,90 Q100,96 108,90"
+        android:strokeWidth="2.5"
+        android:strokeColor="#00D4FF"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"/>
+</vector>

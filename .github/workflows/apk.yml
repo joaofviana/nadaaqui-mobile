@@ -13,8 +13,6 @@ jobs:
       - name: Get timestamp
         id: timestamp
         run: echo "ts=$(date +%Y%m%d%H%M)" >> $GITHUB_OUTPUT
-      - name: Apply Dive app icon
-        run: python3 tool/scripts/apply_dive_icon.py
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -36,18 +34,14 @@ jobs:
           tag_name: v1.0.12-dive-icon-${{ steps.timestamp.outputs.ts }}
           name: NadaAqui 1.0.12 — Logo Dive
           body: |
-            Novo ícone do app (logo Dive — mergulhador + ondas ciano).
+            Novo ícone do app no estilo Dive (mergulhador + ondas ciano).
 
-            **Home**
-            - Carousel Piscinas próximas
-            - Perto de você
-            - FAB +
+            Adaptive icon (Android 8+): fundo preto, line art branca, ondas #00D4FF.
 
-            **Backend**
-            - nearby_places corrigido (sem id ambíguo)
-            - Supabase live conectado
+            Home com carousel + Perto de você + FAB.
+            Supabase nearby_places ok.
 
-            Sideload no Android. Após instalar, o ícone na tela inicial muda para o mergulhador.
+            Sideload no Android.
           files: dist/nadaaqui-1.0.12-dive-icon.apk
           target_commitish: main
           make_latest: true
