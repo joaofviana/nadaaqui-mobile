@@ -6,11 +6,15 @@ import 'package:go_router/go_router.dart';
 import '../../../core/config/api_config.dart';
 import '../../../core/location/location_controller.dart';
 import '../../../data/models/place.dart';
+import '../../../data/repositories/config_repository.dart';
 import '../../../data/repositories/places_repository.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/brand_wordmark.dart';
+import '../../widgets/distance_chip.dart';
+import '../../widgets/guest_gate.dart';
 import '../../widgets/live_backend_banner.dart';
 import '../../widgets/place_photo.dart';
+import 'nearby_pool_mock.dart';
 
 final homePlacesProvider =
     FutureProvider.autoDispose<List<Place>>((ref) async {
@@ -32,12 +36,44 @@ final homePlacesProvider =
 
   try {
     return await byCity();
-  } catch (_) {
-    final res = await repo.listNearQa();
-    return res.items;
+  } catch (e) {
+    try {
+      final res = await repo.listNearQa();
+      return res.items;
+    } catch (_) {
+      rethrow;
+    }
   }
 });
 
+NearbyPoolMock _cardFromPlace(
+  Place p, {
+  required int? checkInRadiusMeters,
+  required bool hasGpsFix,
+}) {
+  return NearbyPoolMock(
+    name: p.name,
+    distanceMeters: hasGpsFix ? p.distanceMeters : null,
+    tipo: switch (p.placeType) {
+      PlaceType.pool => 'Piscina',
+      PlaceType.club => 'Clube',
+      PlaceType.beach => 'Praia',
+      _ => 'Tanque',
+    },
+    accessLabel: p.priceType == PriceType.free
+        ? 'Grátis'
+        : p.totalPass == TotalPass.yes
+            ? 'Total Pass'
+            : 'Pago',
+    totalPass: p.totalPass == TotalPass.yes,
+    placeId: p.id,
+    photoUrl: p.thumbnailUrl,
+    checkInRadiusMeters: checkInRadiusMeters,
+    showPresence: false,
+  );
+}
+
+/// HOME IA — Piscinas próximas (tab Mapa / discovery). Ver HOME-IA.md.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -46,6 +82,9 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  final _pageCtrl = PageController(viewportFraction: 0.92);
+  int _page = 0;
+
   @override
   void initState() {
     super.initState();
@@ -55,151 +94,548 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   @override
+  void dispose() {
+    _pageCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
     final liveAsync = ref.watch(homePlacesProvider);
+    final loc = ref.watch(locationControllerProvider);
+    final cfgAsync = ref.watch(remoteConfigProvider);
+    final radius = cfgAsync.asData?.value.checkInRadiusMeters;
+    final hasGpsFix = loc.isGranted && loc.lat != null && loc.lng != null;
     final useLive = ApiConfig.useSupabase;
-    final items = liveAsync.asData?.value ?? const <Place>[];
+    List<NearbyPoolMock> pools = const [];
+    List<NearbyPoolMock> nearby = const [];
+    List<TrendMock> trends = const [];
+    if (useLive) {
+      final items = liveAsync.asData?.value ?? const <Place>[];
+      final cards = items
+          .map(
+            (p) => _cardFromPlace(
+              p,
+              checkInRadiusMeters: radius,
+              hasGpsFix: hasGpsFix,
+            ),
+          )
+          .toList();
+      pools = cards;
+      nearby = cards.length > 3 ? cards.sublist(0, 3) : cards;
+    } else if (ApiConfig.forceMock) {
+      pools = kMockNearbyPools;
+      nearby = kMockPertoDeVoce;
+      trends = kMockEmAlta;
+    }
 
     return Scaffold(
       backgroundColor: t.bg,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final ok = await ensureLoggedIn(context, ref);
+          if (ok && context.mounted) context.go('/mapa/explorar');
+        },
+        child: const Icon(Icons.add),
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => ref.invalidate(homePlacesProvider),
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 88),
-            children: [
-              const LiveBackendBanner(),
-              Row(
-                children: [
-                  const Expanded(child: BrandWordmark(height: 30)),
-                  if (kDebugMode)
-                    Text(
-                      useLive ? 'LIVE' : 'OFF',
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              const SliverToBoxAdapter(child: LiveBackendBanner()),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                  child: Row(
+                    children: [
+                      const Expanded(child: BrandWordmark(height: 30)),
+                      if (kDebugMode)
+                        Text(
+                          ApiConfig.useSupabase
+                              ? 'LIVE'
+                              : ApiConfig.forceMock
+                                  ? 'MOCK'
+                                  : 'OFF',
+                          style: TextStyle(
+                            color: ApiConfig.useSupabase ? t.accent : t.error,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: TextField(
+                    readOnly: true,
+                    onTap: () => context.go('/mapa/explorar'),
+                    decoration: InputDecoration(
+                      hintText: 'Buscar piscinas, bairro ou #tag…',
+                      prefixIcon:
+                          Icon(Icons.search, color: t.textMuted, size: 22),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              if (useLive && liveAsync.isLoading)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                ),
+              if (useLive && liveAsync.hasError)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Sem conexão com o servidor agora.',
+                          style: TextStyle(
+                            color: t.error,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Confira a internet e tente de novo.',
+                          style: TextStyle(
+                            color: t.textMuted,
+                            height: 1.4,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        FilledButton.tonal(
+                          onPressed: () => ref.invalidate(homePlacesProvider),
+                          child: const Text('Tentar de novo'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              if (useLive &&
+                  liveAsync.hasValue &&
+                  (liveAsync.value?.isEmpty ?? true) &&
+                  !ApiConfig.missingLiveKey)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Text(
+                      'Live conectado, mas nenhum place publicado. Confira o seed no dashboard.',
+                      style: TextStyle(color: t.textMuted, height: 1.4),
+                    ),
+                  ),
+                ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 12, 8),
+                  child: Row(
+                    children: [
+                      Icon(Icons.waves, color: t.accent, size: 22),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Piscinas próximas',
+                          style: TextStyle(
+                            color: t.text,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Anterior',
+                        onPressed: _page > 0
+                            ? () => _pageCtrl.previousPage(
+                                  duration: const Duration(milliseconds: 280),
+                                  curve: Curves.easeOut,
+                                )
+                            : null,
+                        icon: Icon(Icons.chevron_left, color: t.textMuted),
+                      ),
+                      ...List.generate(pools.length.clamp(0, 8), (i) {
+                        final on = i == _page;
+                        return Container(
+                          width: on ? 8 : 6,
+                          height: on ? 8 : 6,
+                          margin: const EdgeInsets.symmetric(horizontal: 3),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: on ? t.text : t.surface2,
+                          ),
+                        );
+                      }),
+                      IconButton(
+                        tooltip: 'Próxima',
+                        onPressed: _page < pools.length - 1
+                            ? () => _pageCtrl.nextPage(
+                                  duration: const Duration(milliseconds: 280),
+                                  curve: Curves.easeOut,
+                                )
+                            : null,
+                        icon: Icon(Icons.chevron_right, color: t.textMuted),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 268,
+                  child: pools.isEmpty
+                      ? const SizedBox.shrink()
+                      : PageView.builder(
+                          controller: _pageCtrl,
+                          itemCount: pools.length,
+                          onPageChanged: (i) => setState(() => _page = i),
+                          itemBuilder: (context, i) {
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: _NearbyPoolCard(
+                                pool: pools[i],
+                                onOpen: () {
+                                  if (pools[i].placeId != null) {
+                                    context.go(
+                                      '/mapa/place/${pools[i].placeId}',
+                                    );
+                                  }
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Perto de você',
+                          style: TextStyle(
+                            color: t.text,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => context.go('/mapa/explorar'),
+                        child: Text(
+                          'ver todas',
+                          style: TextStyle(
+                            color: t.accent,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 168,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: nearby.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    itemBuilder: (context, i) {
+                      final p = nearby[i];
+                      return _CompactNearbyCard(
+                        pool: p,
+                        onTap: () {
+                          if (p.placeId != null) {
+                            context.go('/mapa/place/${p.placeId}');
+                          } else {
+                            context.go('/mapa/explorar');
+                          }
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ),
+              if (trends.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                    child: Text(
+                      'Em alta',
                       style: TextStyle(
-                        color: useLive ? t.accent : t.error,
-                        fontSize: 11,
+                        color: t.text,
+                        fontSize: 17,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                readOnly: true,
-                onTap: () => context.go('/mapa/explorar'),
-                decoration: InputDecoration(
-                  hintText: 'Buscar piscinas, bairro ou #tag…',
-                  prefixIcon: Icon(Icons.search, color: t.textMuted, size: 22),
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (useLive && liveAsync.isLoading)
-                const Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-              if (useLive && liveAsync.hasError) ...[
-                Text(
-                  'Sem conexão com o servidor agora.',
-                  style: TextStyle(
-                    color: t.error,
-                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Confira a internet e tente de novo.',
-                  style: TextStyle(color: t.textMuted, height: 1.4, fontSize: 13),
-                ),
-                const SizedBox(height: 12),
-                FilledButton.tonal(
-                  onPressed: () => ref.invalidate(homePlacesProvider),
-                  child: const Text('Tentar de novo'),
-                ),
-                const SizedBox(height: 16),
-              ],
-              Row(
-                children: [
-                  Icon(Icons.waves, color: t.accent, size: 22),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Piscinas próximas',
-                    style: TextStyle(
-                      color: t.text,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              if (items.isEmpty && !liveAsync.isLoading && !liveAsync.hasError)
-                Text(
-                  useLive
-                      ? 'Nenhuma piscina publicada ainda.'
-                      : 'Backend OFF — configure a anon key.',
-                  style: TextStyle(color: t.textMuted),
-                ),
-              ...items.map((p) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Material(
-                    color: t.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    clipBehavior: Clip.antiAlias,
-                    child: InkWell(
-                      onTap: () => context.go('/mapa/place/${p.id}'),
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 88,
-                            height: 88,
-                            child: PlacePhoto(url: p.thumbnailUrl),
+              if (trends.isNotEmpty)
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, i) {
+                      final row = trends[i];
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(color: t.hairline),
                           ),
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 36,
+                              child: Text(
+                                '${row.rank}',
+                                style: TextStyle(
+                                  color: t.textMuted,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    p.name,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
+                                    row.keyword,
                                     style: TextStyle(
                                       color: t.text,
+                                      fontSize: 16,
                                       fontWeight: FontWeight.w700,
-                                      fontSize: 15,
                                     ),
                                   ),
-                                  if (p.distanceMeters != null)
-                                    Text(
-                                      '${p.distanceMeters} m',
-                                      style: TextStyle(
-                                        color: t.textMuted,
-                                        fontSize: 12,
-                                      ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    row.subtitle,
+                                    style: TextStyle(
+                                      color: t.textMuted,
+                                      fontSize: 13,
                                     ),
+                                  ),
                                 ],
                               ),
                             ),
-                          ),
-                          Icon(Icons.chevron_right, color: t.textMuted),
-                          const SizedBox(width: 8),
-                        ],
-                      ),
-                    ),
+                          ],
+                        ),
+                      );
+                    },
+                    childCount: trends.length,
                   ),
-                );
-              }),
-              const SizedBox(height: 8),
-              FilledButton(
-                onPressed: () => context.go('/mapa/explorar'),
-                child: const Text('Explorar todas'),
+                ),
+              const SliverToBoxAdapter(child: SizedBox(height: 88)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NearbyPoolCard extends StatelessWidget {
+  const _NearbyPoolCard({required this.pool, required this.onOpen});
+
+  final NearbyPoolMock pool;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = NadaTokens.of(context);
+    return Material(
+      color: t.surface,
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onOpen,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: t.border.withValues(alpha: 0.5)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: 108,
+                width: double.infinity,
+                child: PlacePhoto(
+                  url: pool.photoUrl,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                child: Text(
+                  pool.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: t.text,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        if (pool.distanceMeters == null ||
+                            pool.checkInRadiusMeters == null)
+                          const DistanceChip.unavailable()
+                        else
+                          DistanceChip.fixedMeters(
+                            distanceMeters: pool.distanceMeters!,
+                            checkInRadiusMeters: pool.checkInRadiusMeters!,
+                          ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '· ${pool.tipo}',
+                          style: TextStyle(color: t.textMuted, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        if (pool.covered)
+                          const _Tag(label: 'Coberta', accent: true),
+                        if (pool.heated)
+                          const _Tag(label: 'Aquecida', accent: true),
+                        _Tag(label: pool.accessLabel),
+                        if (pool.totalPass)
+                          const _Tag(label: 'Total Pass', accent: true),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CompactNearbyCard extends StatelessWidget {
+  const _CompactNearbyCard({required this.pool, required this.onTap});
+
+  final NearbyPoolMock pool;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = NadaTokens.of(context);
+    return SizedBox(
+      width: 168,
+      child: Material(
+        color: t.surface,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: 64,
+                width: double.infinity,
+                child: PlacePhoto(url: pool.photoUrl),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        pool.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: t.text,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${pool.distanceMeters != null ? formatDistanceMeters(pool.distanceMeters!) : '—'} · ${pool.tipo}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: t.textMuted, fontSize: 11),
+                      ),
+                      Text(
+                        pool.accessLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: t.textMuted, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Tag extends StatelessWidget {
+  const _Tag({required this.label, this.accent = false});
+
+  final String label;
+  final bool accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = NadaTokens.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: accent ? t.accent : t.surface2,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: accent ? Colors.black : t.text,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
