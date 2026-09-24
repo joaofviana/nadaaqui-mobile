@@ -27,20 +27,16 @@ final homePlacesProvider =
     return res.items;
   }
 
-  // GPS: tenta nearby; se falhar (rede/RPC), cai em lista por cidade.
   if (loc.lat != null && loc.lng != null) {
     try {
       final res = await repo.listNearby(lat: loc.lat!, lng: loc.lng!);
       if (res.items.isNotEmpty) return res.items;
-    } catch (_) {
-      // segue para city
-    }
+    } catch (_) {}
   }
 
   try {
     return await byCity();
   } catch (e) {
-    // Última tentativa: nearby com ponto de SP (mesmo sem GPS).
     try {
       final res = await repo.listNearQa();
       return res.items;
@@ -75,4 +71,74 @@ NearbyPoolMock _cardFromPlace(
     checkInRadiusMeters: checkInRadiusMeters,
     showPresence: false,
   );
+}
+
+/// HOME IA — Piscinas próximas (tab Mapa / discovery). Ver HOME-IA.md.
+class HomeScreen extends ConsumerStatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  final _pageCtrl = PageController(viewportFraction: 0.92);
+  int _page = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(locationControllerProvider.notifier).ensurePermissionOnce();
+    });
+  }
+
+  @override
+  void dispose() {
+    _pageCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = NadaTokens.of(context);
+    final liveAsync = ref.watch(homePlacesProvider);
+    final loc = ref.watch(locationControllerProvider);
+    final cfgAsync = ref.watch(remoteConfigProvider);
+    final radius = cfgAsync.asData?.value.checkInRadiusMeters;
+    final hasGpsFix = loc.isGranted && loc.lat != null && loc.lng != null;
+    final useLive = ApiConfig.useSupabase;
+    List<NearbyPoolMock> pools = const [];
+    List<NearbyPoolMock> nearby = const [];
+    List<TrendMock> trends = const [];
+    if (useLive) {
+      final items = liveAsync.asData?.value ?? const <Place>[];
+      final cards = items
+          .map(
+            (p) => _cardFromPlace(
+              p,
+              checkInRadiusMeters: radius,
+              hasGpsFix: hasGpsFix,
+            ),
+          )
+          .toList();
+      pools = cards;
+      nearby = cards.length > 3 ? cards.sublist(0, 3) : cards;
+    } else if (ApiConfig.forceMock) {
+      pools = kMockNearbyPools;
+      nearby = kMockPertoDeVoce;
+      trends = kMockEmAlta;
+    }
+
+    return Scaffold(
+      backgroundColor: t.bg,
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            const SliVER_PLACEHOLDER
+          ],
+        ),
+      ),
+    );
+  }
 }
