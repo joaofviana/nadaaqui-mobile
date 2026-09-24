@@ -26,7 +26,6 @@ final GlobalKey<NavigatorState> _feedKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _treinoKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _perfilKey = GlobalKey<NavigatorState>();
 
-/// Provider para o router que monitora autenticação + onboarding
 final routerProvider = Provider<GoRouter>((ref) {
   return createAppRouter(ref);
 });
@@ -47,22 +46,18 @@ GoRouter createAppRouter(Ref ref) {
       final isAuthRoute = loc == '/entrar';
       final isOnboarding = loc == '/onboarding';
 
-      // Aguarda hidratar SharedPreferences do onboarding
       if (!onboarding.hydrated && !isAuthenticated) {
         return isOnboarding ? null : '/onboarding';
       }
 
-      // Onboarding ainda não visto → força fluxo
       if (!onboarding.done && !isAuthenticated) {
         return isOnboarding ? null : '/onboarding';
       }
 
-      // Já viu onboarding e não logado → login
       if (onboarding.done && !isAuthenticated && !isAuthRoute) {
         return '/entrar';
       }
 
-      // Logado na tela de login ou onboarding → app
       if (isAuthenticated && (isAuthRoute || isOnboarding)) {
         return '/mapa';
       }
@@ -172,6 +167,21 @@ GoRouter createAppRouter(Ref ref) {
               GoRoute(
                 path: '/treino',
                 builder: (context, state) => const WorkoutBuilderScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'novo',
+                    builder: (context, state) => const WorkoutNewScreen(),
+                  ),
+                  GoRoute(
+                    path: 'exercicios',
+                    builder: (context, state) =>
+                        const WorkoutExercisesScreen(),
+                  ),
+                  GoRoute(
+                    path: 'resumo',
+                    builder: (context, state) => const WorkoutSummaryScreen(),
+                  ),
+                ],
               ),
             ],
           ),
@@ -200,7 +210,6 @@ GoRouter createAppRouter(Ref ref) {
   );
 }
 
-/// Combina ChangeNotifiers de sessão + onboarding para o GoRouter.
 class _RouterRefresh extends ChangeNotifier {
   _RouterRefresh(this._session, this._onboarding) {
     _session.addListener(notifyListeners);
