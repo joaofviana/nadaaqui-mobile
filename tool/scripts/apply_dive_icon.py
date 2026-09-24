@@ -7,11 +7,13 @@ ROOT = Path(__file__).resolve().parents[2]
 DATA = Path(__file__).resolve().parent / 'icon_data'
 
 MAP = {
-    'mdpi.b64': ['android/app/src/main/res/mipmap-mdpi/ic_launcher.png'],
-    'hdpi.b64': ['android/app/src/main/res/mipmap-hdpi/ic_launcher.png'],
-    'xhdpi.b64': ['android/app/src/main/res/mipmap-xhdpi/ic_launcher.png'],
-    'xxhdpi.b64': ['android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png'],
-    'xxxhdpi.b64': ['android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png'],
+    'launcher.b64': [
+        'android/app/src/main/res/mipmap-mdpi/ic_launcher.png',
+        'android/app/src/main/res/mipmap-hdpi/ic_launcher.png',
+        'android/app/src/main/res/mipmap-xhdpi/ic_launcher.png',
+        'android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png',
+        'android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png',
+    ],
     'brand.b64': [
         'assets/brand/app-icon.png',
         'assets/brand/app-icon-tight.png',
