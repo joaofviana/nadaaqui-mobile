@@ -131,10 +131,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       backgroundColor: t.bg,
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            const SliVER_PLACEHOLDER
-          ],
+        child: RefreshIndicator(
+          onRefresh: () async => ref.invalidate(homePlacesProvider),
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              const SliverToBoxAdapter(child: LiveBackendBanner()),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                  child: Row(
+                    children: [
+                      const Expanded(child: BrandWordmark(height: 30)),
+                      if (kDebugMode)
+                        Text(
+                          ApiConfig.useSupabase
+                              ? 'LIVE'
+                              : ApiConfig.forceMock
+                                  ? 'MOCK'
+                                  : 'OFF',
+                          style: TextStyle(
+                            color: ApiConfig.useSupabase ? t.accent : t.error,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              SliVER_PLACEHOLDER_REMOVE
+            ],
+          ),
         ),
       ),
     );
