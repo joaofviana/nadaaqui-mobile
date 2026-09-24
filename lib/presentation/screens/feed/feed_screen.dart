@@ -4,122 +4,310 @@ import 'package:go_router/go_router.dart';
 
 import '../../providers/feed_store.dart';
 import '../../theme/app_colors.dart';
-import '../../widgets/brand_wordmark.dart';
 import '../../widgets/guest_gate.dart';
-import '../../widgets/streak_counter.dart';
 import '../../../core/session/session_store.dart';
 import '../compose/compose_screen.dart';
-import '../comments/comments_screen.dart';
 
-class FeedScreen extends ConsumerWidget {
+/// Abas do Feed no estilo da captura: Clubes | Explorar | Seguindo.
+enum FeedTab { clubes, explorar, seguindo }
+
+class FeedScreen extends ConsumerStatefulWidget {
   const FeedScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FeedScreen> createState() => _FeedScreenState();
+}
+
+class _FeedScreenState extends ConsumerState<FeedScreen> {
+  FeedTab _tab = FeedTab.explorar;
+
+  @override
+  Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
     final feed = ref.watch(feedStoreProvider);
     final posts = feed.posts;
     final session = ref.watch(sessionStoreProvider);
+
     return Scaffold(
       backgroundColor: t.bg,
       body: Column(
         children: [
           SafeArea(
             bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Row(
-                children: [
-                  const Expanded(child: BrandWordmark(height: 28)),
-                  IconButton(
-                    tooltip: 'Notificações',
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('🔔 Notificações em breve!'),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
-                    icon: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Icon(Icons.notifications_outlined, color: t.text),
-                        Positioned(
-                          right: -2,
-                          top: -2,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: t.accent,
-                              shape: BoxShape.circle,
-                            ),
+            child: Column(
+              children: [
+                // Topo: busca · Feed · notificações
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        tooltip: 'Buscar',
+                        onPressed: () => context.go('/mapa/explorar'),
+                        icon: Icon(Icons.search, color: t.text, size: 26),
+                      ),
+                      Expanded(
+                        child: Text(
+                          'Feed',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: t.text,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.3,
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Buscar',
-                    onPressed: () => context.go('/mapa/explorar'),
-                    icon: Icon(Icons.search, color: t.text),
-                  ),
-                  IconButton(
-                    tooltip: 'Nova publicação',
-                    onPressed: () => openCompose(context, ref),
-                    icon: Icon(Icons.add_circle_outline, color: t.text),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: feed.loading
-                ? const Center(child: CircularProgressIndicator())
-                : posts.isEmpty
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.pool, size: 64, color: t.textMuted),
-                              const SizedBox(height: 16),
-                              Text(
-                                feed.error ??
-                                    'Nenhuma publicação por enquanto.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: t.textMuted, height: 1.4),
-                              ),
-                              const SizedBox(height: 16),
-                              if (session != null)
-                                ElevatedButton.icon(
-                                  onPressed: () => openCompose(context, ref),
-                                  icon: const Icon(Icons.add),
-                                  label: const Text('Criar primeira publicação'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: t.accent,
-                                    foregroundColor: Colors.white,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: () async {
-                          await ref.read(feedStoreProvider.notifier).reload();
-                        },
-                        child: ListView.builder(
-                          itemCount: posts.length,
-                          itemBuilder: (context, i) =>
-                              _FeedPostTile(post: posts[i]),
                         ),
                       ),
+                      IconButton(
+                        tooltip: 'Notificações',
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('🔔 Notificações em breve!'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                        icon: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Icon(
+                              Icons.notifications_outlined,
+                              color: t.text,
+                              size: 26,
+                            ),
+                            Positioned(
+                              right: -1,
+                              top: -1,
+                              child: Container(
+                                width: 9,
+                                height: 9,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFFF3B30),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Abas: Clubes | Explorar | Seguindo
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+                  child: Row(
+                    children: [
+                      _FeedTabLabel(
+                        label: 'Clubes',
+                        selected: _tab == FeedTab.clubes,
+                        onTap: () => setState(() => _tab = FeedTab.clubes),
+                      ),
+                      _FeedTabLabel(
+                        label: 'Explorar',
+                        selected: _tab == FeedTab.explorar,
+                        onTap: () => setState(() => _tab = FeedTab.explorar),
+                      ),
+                      _FeedTabLabel(
+                        label: 'Seguindo',
+                        selected: _tab == FeedTab.seguindo,
+                        onTap: () => setState(() => _tab = FeedTab.seguindo),
+                      ),
+                    ],
+                  ),
+                ),
+                Divider(height: 1, thickness: 1, color: t.hairline),
+              ],
+            ),
           ),
+          Expanded(child: _buildBody(t, feed, posts, session)),
         ],
+      ),
+      floatingActionButton: _tab == FeedTab.explorar
+          ? FloatingActionButton(
+              onPressed: () => openCompose(context, ref),
+              child: const Icon(Icons.add),
+            )
+          : null,
+    );
+  }
+
+  Widget _buildBody(
+    NadaTokens t,
+    FeedState feed,
+    List<FeedPost> posts,
+    dynamic session,
+  ) {
+    if (_tab == FeedTab.clubes) {
+      return const _WorkingOnScreen(
+        title: 'Clubes',
+        subtitle:
+            'Estamos trabalhando nesta tela.\nEm breve você acompanha o feed dos seus clubes e piscinas favoritas.',
+        icon: Icons.groups_outlined,
+      );
+    }
+    if (_tab == FeedTab.seguindo) {
+      return const _WorkingOnScreen(
+        title: 'Seguindo',
+        subtitle:
+            'Estamos trabalhando nesta tela.\nAqui vão aparecer as publicações de quem você segue.',
+        icon: Icons.person_add_alt_1_outlined,
+      );
+    }
+
+    // Explorar — feed atual
+    if (feed.loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (posts.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.pool, size: 64, color: t.textMuted),
+              const SizedBox(height: 16),
+              Text(
+                feed.error ?? 'Nenhuma publicação por enquanto.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: t.textMuted, height: 1.4),
+              ),
+              const SizedBox(height: 16),
+              if (session != null)
+                ElevatedButton.icon(
+                  onPressed: () => openCompose(context, ref),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Criar primeira publicação'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: t.accent,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: () async {
+        await ref.read(feedStoreProvider.notifier).reload();
+      },
+      child: ListView.builder(
+        itemCount: posts.length,
+        itemBuilder: (context, i) => _FeedPostTile(post: posts[i]),
+      ),
+    );
+  }
+}
+
+class _FeedTabLabel extends StatelessWidget {
+  const _FeedTabLabel({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = NadaTokens.of(context);
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: selected ? t.text : t.textMuted,
+                  fontSize: 15,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              height: 2.5,
+              width: selected ? 56 : 0,
+              decoration: BoxDecoration(
+                color: selected ? t.text : Colors.transparent,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WorkingOnScreen extends StatelessWidget {
+  const _WorkingOnScreen({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = NadaTokens.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: t.surface2,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 36, color: t.accent),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              title,
+              style: TextStyle(
+                color: t.text,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: t.textMuted,
+                fontSize: 15,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Em construção',
+              style: TextStyle(
+                color: t.accent,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -153,7 +341,6 @@ class _FeedPostTile extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header do post (avatar, nome, tempo, opções)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -219,21 +406,17 @@ class _FeedPostTile extends ConsumerWidget {
                 ),
                 IconButton(
                   icon: Icon(Icons.more_horiz, color: t.textMuted),
-                  onPressed: () {
-                    // TODO: Menu de opções do post
-                  },
+                  onPressed: () {},
                 ),
               ],
             ),
           ),
           const SizedBox(height: 8),
-          // Conteúdo do post
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: _PostBody(post: post),
           ),
           const SizedBox(height: 12),
-          // Ações do post (like, comment, share)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: _Actions(post: post),
@@ -260,9 +443,9 @@ class _PostBody extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: t.accent.withOpacity(0.1),
+              color: t.accent.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: t.accent.withOpacity(0.3)),
+              border: Border.all(color: t.accent.withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [
@@ -288,9 +471,9 @@ class _PostBody extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.amber.withOpacity(0.1),
+              color: Colors.amber.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.amber.withOpacity(0.3)),
+              border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [
@@ -328,7 +511,7 @@ class _PostBody extends StatelessWidget {
                 color: t.text,
               ),
               children: [
-                TextSpan(text: 'fez check-in em '),
+                const TextSpan(text: 'fez check-in em '),
                 TextSpan(
                   text: post.placeName,
                   style: TextStyle(
@@ -356,8 +539,8 @@ class _PostBody extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               gradient: LinearGradient(
                 colors: [
-                  t.accent.withOpacity(0.3),
-                  t.accent.withOpacity(0.1),
+                  t.accent.withValues(alpha: 0.3),
+                  t.accent.withValues(alpha: 0.1),
                 ],
               ),
             ),
@@ -441,16 +624,12 @@ class _Actions extends ConsumerWidget {
         ),
         IconButton(
           icon: Icon(Icons.share, size: 24, color: t.text),
-          onPressed: () {
-            // TODO: Compartilhar post
-          },
+          onPressed: () {},
         ),
         const Spacer(),
         IconButton(
           icon: Icon(Icons.bookmark_border, size: 24, color: t.text),
-          onPressed: () {
-            // TODO: Salvar post
-          },
+          onPressed: () {},
         ),
       ],
     );
