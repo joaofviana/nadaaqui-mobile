@@ -157,7 +157,7 @@ class AuthApi {
           headers: {'Authorization': 'Bearer $accessToken'},
         ),
       );
-    } on DioException catch (e) {
+    } on DioException {
       // Logout não deve falhar mesmo se o servidor responder erro
       // O app deve limpar a session local de qualquer forma
     }

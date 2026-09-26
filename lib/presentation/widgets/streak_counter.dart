@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 
 /// Widget de Streak Counter inspirado no FITfolio
 /// Mostra dias consecutivos de natação com visual motivador

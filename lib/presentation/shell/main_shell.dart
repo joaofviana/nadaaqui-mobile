@@ -83,7 +83,6 @@ class _NavItem extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
-    this.badge,
   });
 
   final IconData icon;
@@ -91,13 +90,11 @@ class _NavItem extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  final String? badge;
 
   @override
   Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
     final color = selected ? t.navActive : t.navInactive;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Expanded(
       child: InkWell(
         onTap: onTap,
@@ -108,30 +105,6 @@ class _NavItem extends StatelessWidget {
               clipBehavior: Clip.none,
               children: [
                 Icon(selected ? selectedIcon : icon, color: color, size: 24),
-                if (badge != null && badge!.isNotEmpty)
-                  Positioned(
-                    top: -6,
-                    right: -14,
-                    child: Container(
-                      constraints: const BoxConstraints(minWidth: 22),
-                      height: 16,
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.white : t.accent,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        badge!,
-                        style: TextStyle(
-                          color: isDark ? Colors.black : Colors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          height: 1,
-                        ),
-                      ),
-                    ),
-                  ),
               ],
             ),
             const SizedBox(height: 3),

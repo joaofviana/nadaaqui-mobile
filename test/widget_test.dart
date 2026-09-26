@@ -7,14 +7,18 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   SharedPreferences.setMockInitialValues({});
 
-  testWidgets('NadaAqui smoke - login first screen', (tester) async {
-    // Testa que o app começa na tela de login quando não autenticado
+  testWidgets('NadaAqui smoke - onboarding first screen', (tester) async {
+    // Testa que o app começa no onboarding (/onboarding) quando não autenticado
     await tester.pumpWidget(
       const ProviderScope(child: NadaAquiApp()),
     );
     await tester.pump();
     
-    // Deve mostrar texto da tela de login
-    expect(find.textContaining('Entrar'), findsWidgets);
+    // Deve mostrar a primeira tela do onboarding
+    expect(find.textContaining('Conecte-se com'), findsOneWidget);
+    expect(find.text('Pular'), findsOneWidget);
+
+    // Drena o timer da animação de entrada do onboarding.
+    await tester.pump(const Duration(seconds: 1));
   });
 }
