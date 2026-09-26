@@ -295,6 +295,9 @@ const kWorkoutSaveFailMsg =
     'Não foi possível salvar o treino. Verifique sua conexão e tente de novo.';
 const kWorkoutSaveEmptyMsg = 'Adicione ao menos um exercício antes de salvar.';
 const kWorkoutSaveNameMsg = 'Dê um nome ao treino antes de salvar.';
+const kWorkoutSavePlanGoneMsg =
+    'Esse treino não existe mais. Ele será salvo como um treino novo.';
+const kWorkoutDemoName = 'Treino Crawl & Resistência';
 
 class WorkoutDraftStore extends Notifier<WorkoutDraft> {
   bool get _remote => ref.read(workoutRemoteEnabledProvider);
@@ -369,9 +372,11 @@ class WorkoutDraftStore extends Notifier<WorkoutDraft> {
     );
   }
 
+  /// Preenche os blocos do treino de exemplo (atalho "+" de Exercícios).
+  /// Não sobrescreve o nome digitado; só usa o nome do exemplo se vazio.
   void seedDemoBlocks() {
     state = state.copyWith(
-      name: 'Treino Crawl & Resistência',
+      name: state.name.trim().isEmpty ? kWorkoutDemoName : null,
       blocks: const [
         WorkoutBlock(
           id: 'w1',
@@ -451,6 +456,18 @@ class WorkoutDraftStore extends Notifier<WorkoutDraft> {
           state = state.copyWith(saving: false, error: kWorkoutSaveLoginMsg);
           return const WorkoutSaveResult.needsLogin();
         }
+        final editingId = state.editingPlanId;
+        if (editingId != null && _isPlanNotFound(err)) {
+          // Plano apagado (ou de outro usuário): a próxima tentativa cria um
+          // plano novo; o rascunho continua na tela.
+          state = state.copyWith(
+            saving: false,
+            error: kWorkoutSavePlanGoneMsg,
+            clearEditingPlanId: true,
+            saved: state.saved.where((s) => s.id != editingId).toList(),
+          );
+          return const WorkoutSaveResult.failed(kWorkoutSavePlanGoneMsg);
+        }
         final msg = _isValidation(err) ? kWorkoutSaveNameMsg : kWorkoutSaveFailMsg;
         state = state.copyWith(saving: false, error: msg);
         return WorkoutSaveResult.failed(msg);
@@ -481,6 +498,13 @@ class WorkoutDraftStore extends Notifier<WorkoutDraft> {
       err.code == ApiErrorCode.unauthorized ||
       err.statusCode == 401 ||
       err.message == 'UNAUTHORIZED';
+
+  /// `save_workout_plan` com `p_plan_id` que não existe ou não é do usuário
+  /// faz `raise exception 'NOT_FOUND' using errcode = 'P0001'`; o PostgREST
+  /// devolve HTTP 400 com `{"code":"P0001","message":"NOT_FOUND"}`.
+  /// (HTTP 404 do PostgREST significa RPC inexistente, não plano apagado.)
+  static bool _isPlanNotFound(ApiError err) =>
+      err.message == 'NOT_FOUND' || err.code == ApiErrorCode.notFound;
 
   static bool _isValidation(ApiError err) =>
       err.code == ApiErrorCode.validationError ||

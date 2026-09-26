@@ -90,6 +90,24 @@ ProviderContainer _container(FakeWorkoutApi api, {AuthSession? session}) {
   return c;
 }
 
+SavedWorkout _savedPlan(String id) => SavedWorkout(
+      id: id,
+      name: 'Treino salvo',
+      pool: PoolLength.m25,
+      focus: WorkoutFocus.misto,
+      blocks: const [
+        WorkoutBlock(
+          id: 'b1',
+          phase: WorkoutPhase.serie,
+          title: 'Série',
+          detail: '4x100m',
+          meters: 100,
+          sets: 4,
+        ),
+      ],
+      createdAt: DateTime(2026, 9, 26),
+    );
+
 ProviderContainer container(WidgetTester tester) =>
     ProviderScope.containerOf(tester.element(find.byType(Scaffold).first));
 
@@ -174,21 +192,119 @@ void main() {
       expect(api.calls.last['planId'], 'plan-1');
       expect(c.read(workoutDraftProvider).saved, hasLength(1));
     });
+
+    test('duplo toque: duas chamadas seguidas geram uma só chamada ao servidor',
+        () async {
+      final pending = Completer<SavedWorkout>();
+      final api = FakeWorkoutApi()..onSave = () => pending.future;
+      final c = _container(api, session: _session);
+      final store = c.read(workoutDraftProvider.notifier)..seedDemoBlocks();
+
+      final first = store.saveCurrent();
+      final second = await store.saveCurrent();
+      expect(second.status, WorkoutSaveStatus.busy);
+      expect(c.read(workoutDraftProvider).saving, isTrue);
+
+      pending.complete(_savedPlan('plan-1'));
+      expect((await first).status, WorkoutSaveStatus.saved);
+      expect(api.calls, hasLength(1));
+    });
+
+    test('plano apagado no servidor (NOT_FOUND): avisa, limpa p_plan_id e a '
+        'próxima tentativa cria um novo', () async {
+      var fail = true;
+      final api = FakeWorkoutApi();
+      api.onSave = () {
+        if (fail) {
+          fail = false;
+          return Future.error(
+            _dioError(400, {
+              'code': 'P0001',
+              'message': 'NOT_FOUND',
+              'details': null,
+              'hint': null,
+            }),
+          );
+        }
+        return Future.value(_savedPlan('plan-novo'));
+      };
+      final c = _container(api, session: _session);
+      final store = c.read(workoutDraftProvider.notifier);
+      final gone = _savedPlan('plan-apagado');
+      store.state = store.state.copyWith(saved: [gone]);
+      store.loadSavedIntoDraft(gone);
+
+      final r1 = await store.saveCurrent();
+      expect(r1.status, WorkoutSaveStatus.failed);
+      expect(r1.message, kWorkoutSavePlanGoneMsg);
+      expect(api.calls.last['planId'], 'plan-apagado');
+      var state = c.read(workoutDraftProvider);
+      expect(state.editingPlanId, isNull);
+      expect(state.blocks, isNotEmpty, reason: 'rascunho mantido');
+      expect(state.saved.where((s) => s.id == 'plan-apagado'), isEmpty);
+
+      final r2 = await store.saveCurrent();
+      expect(r2.status, WorkoutSaveStatus.saved);
+      expect(api.calls.last['planId'], isNull);
+      state = c.read(workoutDraftProvider);
+      expect(state.saved.single.id, 'plan-novo');
+    });
+
+    test('HTTP 404 (RPC inexistente) não é tratado como plano apagado',
+        () async {
+      final api = FakeWorkoutApi()
+        ..onSave = () => Future.error(_dioError(404, {'message': 'Not Found'}));
+      final c = _container(api, session: _session);
+      final store = c.read(workoutDraftProvider.notifier)
+        ..loadSavedIntoDraft(_savedPlan('plan-1'));
+
+      final r = await store.saveCurrent();
+      expect(r.message, kWorkoutSaveFailMsg);
+      expect(c.read(workoutDraftProvider).editingPlanId, 'plan-1');
+    });
+  });
+
+  group('seedDemoBlocks (atalho "+")', () {
+    test('mantém o nome digitado', () {
+      final c = _container(FakeWorkoutApi(), session: _session);
+      final store = c.read(workoutDraftProvider.notifier)
+        ..setName('Meu treino de terça')
+        ..seedDemoBlocks();
+      final state = c.read(workoutDraftProvider);
+      expect(state.name, 'Meu treino de terça');
+      expect(state.blocks, isNotEmpty);
+      expect(store.state.blocks.length, 4);
+    });
+
+    test('usa o nome do exemplo se o nome estiver vazio', () {
+      final c = _container(FakeWorkoutApi(), session: _session);
+      c.read(workoutDraftProvider.notifier)
+        ..setName('  ')
+        ..seedDemoBlocks();
+      expect(c.read(workoutDraftProvider).name, kWorkoutDemoName);
+    });
   });
 
   group('Resumo do Treino — botão salvar', () {
-    Future<void> pumpSummary(
+    Future<GoRouter> pumpSummary(
       WidgetTester tester,
       FakeWorkoutApi api, {
       bool withBlocks = true,
+      bool loggedIn = true,
+      String initialLocation = '/treino/resumo',
+      void Function(WorkoutDraftStore store)? prepare,
     }) async {
       final router = GoRouter(
-        initialLocation: '/treino/resumo',
+        initialLocation: initialLocation,
         routes: [
           GoRoute(
             path: '/treino',
             builder: (_, __) => const Scaffold(body: Text('MEUS_TREINOS')),
             routes: [
+              GoRoute(
+                path: 'novo',
+                builder: (_, __) => const Scaffold(body: Text('NOVO_TREINO')),
+              ),
               GoRoute(
                 path: 'exercicios',
                 builder: (_, __) => const Scaffold(body: Text('EXERCICIOS')),
@@ -206,16 +322,109 @@ void main() {
           overrides: [
             workoutRemoteEnabledProvider.overrideWithValue(true),
             workoutApiProvider.overrideWithValue(api),
-            sessionStoreProvider.overrideWith(() => FakeSessionStore(_session)),
+            sessionStoreProvider.overrideWith(
+              () => FakeSessionStore(loggedIn ? _session : null),
+            ),
           ],
           child: MaterialApp.router(routerConfig: router),
         ),
       );
-      if (withBlocks) {
-        container(tester).read(workoutDraftProvider.notifier).seedDemoBlocks();
-      }
+      final store = container(tester).read(workoutDraftProvider.notifier);
+      if (withBlocks) store.seedDemoBlocks();
+      prepare?.call(store);
       await tester.pump();
+      return router;
     }
+
+    testWidgets('sem login: mostra pedido de login e não sai do Resumo',
+        (tester) async {
+      final api = FakeWorkoutApi();
+      await pumpSummary(tester, api, loggedIn: false);
+
+      await tester.tap(find.byKey(const ValueKey('workout-save-button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Entre na sua conta para salvar o treino.'),
+          findsOneWidget);
+      expect(find.textContaining('Treino salvo!'), findsNothing);
+      expect(find.text('Resumo do Treino'), findsOneWidget);
+      expect(find.text('MEUS_TREINOS'), findsNothing);
+      expect(api.calls, isEmpty);
+      expect(container(tester).read(workoutDraftProvider).blocks, isNotEmpty);
+    });
+
+    testWidgets('treino apagado no servidor: mensagem clara e fica no Resumo',
+        (tester) async {
+      final api = FakeWorkoutApi()
+        ..onSave = () => Future.error(
+              _dioError(400, {'code': 'P0001', 'message': 'NOT_FOUND'}),
+            );
+      await pumpSummary(
+        tester,
+        api,
+        withBlocks: false,
+        prepare: (store) => store.loadSavedIntoDraft(_savedPlan('plan-x')),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('workout-save-button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text(kWorkoutSavePlanGoneMsg), findsOneWidget);
+      expect(find.text('Resumo do Treino'), findsOneWidget);
+      expect(container(tester).read(workoutDraftProvider).editingPlanId,
+          isNull);
+    });
+
+    testWidgets(
+        'vazio vindo de Exercícios: "Adicionar exercícios" faz pop e voltar '
+        'chega em Novo Treino', (tester) async {
+      final api = FakeWorkoutApi();
+      final router = await pumpSummary(
+        tester,
+        api,
+        withBlocks: false,
+        initialLocation: '/treino/novo',
+      );
+      router.push('/treino/exercicios');
+      await tester.pumpAndSettle();
+      router.push('/treino/resumo', extra: kFromWorkoutExercises);
+      await tester.pumpAndSettle();
+      expect(find.text('Seu treino ainda não tem exercícios'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('workout-summary-add')));
+      await tester.pumpAndSettle();
+      expect(find.text('EXERCICIOS'), findsOneWidget);
+
+      router.pop();
+      await tester.pumpAndSettle();
+      expect(find.text('NOVO_TREINO'), findsOneWidget);
+      expect(api.calls, isEmpty);
+    });
+
+    testWidgets(
+        'vazio vindo de Meus Treinos: "Adicionar exercícios" empilha '
+        'Exercícios e voltar retorna ao Resumo', (tester) async {
+      final api = FakeWorkoutApi();
+      final router = await pumpSummary(
+        tester,
+        api,
+        withBlocks: false,
+        initialLocation: '/treino',
+      );
+      router.push('/treino/resumo');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('workout-summary-add')));
+      await tester.pumpAndSettle();
+      expect(find.text('EXERCICIOS'), findsOneWidget);
+
+      router.pop();
+      await tester.pumpAndSettle();
+      expect(find.text('Seu treino ainda não tem exercícios'), findsOneWidget);
+      router.pop();
+      await tester.pumpAndSettle();
+      expect(find.text('MEUS_TREINOS'), findsOneWidget);
+    });
 
     testWidgets('rascunho vazio: estado vazio, sem "Iniciar Treino" e sem save',
         (tester) async {
