@@ -16,6 +16,7 @@ import '../screens/places/places_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/profile/public_profile_screen.dart';
 import '../screens/workout/workout_builder_screen.dart';
+import '../screens/workout/workout_flow_screens.dart';
 import '../shell/main_shell.dart';
 import '../../core/onboarding/onboarding_store.dart';
 import '../../core/session/session_store.dart';
