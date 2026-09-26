@@ -668,15 +668,8 @@ class WorkoutSummaryScreen extends ConsumerWidget {
     final blocks = draft.blocks;
     final saving = draft.saving;
 
-    // se vazio, seed demo para bater com a captura
-    if (blocks.isEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(workoutDraftProvider.notifier).seedDemoBlocks();
-      });
-    }
-
-    final meters = draft.totalMeters == 0 ? 2400 : draft.totalMeters;
-    final mins = draft.estimatedMinutes == 0 ? 50 : draft.estimatedMinutes;
+    final meters = draft.totalMeters;
+    final mins = draft.estimatedMinutes;
 
     return Scaffold(
       backgroundColor: WorkoutUi.bg,
@@ -707,6 +700,13 @@ class WorkoutSummaryScreen extends ConsumerWidget {
                 ],
               ),
             ),
+            if (blocks.isEmpty)
+              Expanded(
+                child: _SummaryEmptyState(
+                  onAdd: () => context.go('/treino/exercicios'),
+                ),
+              )
+            else ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
               child: Row(
@@ -813,6 +813,7 @@ class WorkoutSummaryScreen extends ConsumerWidget {
                       ),
               ),
             ),
+            ],
           ],
         ),
       ),
@@ -853,6 +854,71 @@ class WorkoutSummaryScreen extends ConsumerWidget {
           RegExp(r'(\d)(?=(\d{3})+$)'),
           (m) => '${m[1]}.',
         );
+  }
+}
+
+/// Resumo sem exercícios: nada para salvar, só convida a montar o treino.
+class _SummaryEmptyState extends StatelessWidget {
+  const _SummaryEmptyState({required this.onAdd});
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.pool_outlined,
+              size: 64,
+              color: WorkoutUi.muted.withValues(alpha: 0.7),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Seu treino ainda não tem exercícios',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: WorkoutUi.text,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Adicione exercícios para ver o resumo\ne iniciar o treino.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: WorkoutUi.muted,
+                fontSize: 15,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              key: const ValueKey('workout-summary-add'),
+              onPressed: onAdd,
+              icon: const Icon(Icons.add, size: 20),
+              label: const Text('Adicionar exercícios'),
+              style: FilledButton.styleFrom(
+                backgroundColor: WorkoutUi.blue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 22,
+                  vertical: 14,
+                ),
+                shape: const StadiumBorder(),
+                textStyle: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

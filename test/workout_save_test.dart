@@ -90,6 +90,9 @@ ProviderContainer _container(FakeWorkoutApi api, {AuthSession? session}) {
   return c;
 }
 
+ProviderContainer container(WidgetTester tester) =>
+    ProviderScope.containerOf(tester.element(find.byType(Scaffold).first));
+
 void main() {
   group('WorkoutDraftStore.saveCurrent (Supabase)', () {
     test('sucesso: chama save_workout_plan, adiciona à lista e limpa rascunho',
@@ -176,8 +179,9 @@ void main() {
   group('Resumo do Treino — botão salvar', () {
     Future<void> pumpSummary(
       WidgetTester tester,
-      FakeWorkoutApi api,
-    ) async {
+      FakeWorkoutApi api, {
+      bool withBlocks = true,
+    }) async {
       final router = GoRouter(
         initialLocation: '/treino/resumo',
         routes: [
@@ -185,6 +189,10 @@ void main() {
             path: '/treino',
             builder: (_, __) => const Scaffold(body: Text('MEUS_TREINOS')),
             routes: [
+              GoRoute(
+                path: 'exercicios',
+                builder: (_, __) => const Scaffold(body: Text('EXERCICIOS')),
+              ),
               GoRoute(
                 path: 'resumo',
                 builder: (_, __) => const WorkoutSummaryScreen(),
@@ -203,10 +211,32 @@ void main() {
           child: MaterialApp.router(routerConfig: router),
         ),
       );
-      // O resumo semeia os blocos demo no primeiro frame.
-      await tester.pump();
+      if (withBlocks) {
+        container(tester).read(workoutDraftProvider.notifier).seedDemoBlocks();
+      }
       await tester.pump();
     }
+
+    testWidgets('rascunho vazio: estado vazio, sem "Iniciar Treino" e sem save',
+        (tester) async {
+      final api = FakeWorkoutApi();
+      await pumpSummary(tester, api, withBlocks: false);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Seu treino ainda não tem exercícios'), findsOneWidget);
+      expect(find.text('Adicionar exercícios'), findsOneWidget);
+      expect(find.byKey(const ValueKey('workout-save-button')), findsNothing);
+      expect(find.text('Iniciar Treino'), findsNothing);
+      expect(find.textContaining('2.400'), findsNothing);
+      expect(container(tester).read(workoutDraftProvider).blocks, isEmpty,
+          reason: 'o Resumo não semeia mais o treino de exemplo');
+
+      await tester.tap(find.byKey(const ValueKey('workout-summary-add')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('EXERCICIOS'), findsOneWidget);
+      expect(api.calls, isEmpty);
+    });
 
     testWidgets('sucesso: loading no botão, depois "Treino salvo!" e volta',
         (tester) async {
@@ -239,6 +269,14 @@ void main() {
       expect(api.calls, hasLength(1));
       expect(find.textContaining('Treino salvo!'), findsOneWidget);
       expect(find.text('MEUS_TREINOS'), findsOneWidget);
+
+      // Depois de salvar, o rascunho fica vazio: nada re-semeado.
+      await tester.pump(const Duration(seconds: 1));
+      final draft = container(tester).read(workoutDraftProvider);
+      expect(draft.blocks, isEmpty);
+      expect(draft.totalMeters, 0);
+      expect(draft.saved.single.id, 'plan-1');
+      expect(api.calls, hasLength(1));
     });
 
     testWidgets('falha: SnackBar de erro, fica no resumo e permite tentar de novo',
