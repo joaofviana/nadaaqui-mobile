@@ -8,6 +8,9 @@ import 'workout_theme.dart';
 // Telas 2–4 da jornada de treino (Novo Treino, Exercícios, Resumo).
 // Restauradas do commit 065106f, perdidas em 25f4879.
 
+/// `extra` usado ao abrir o Resumo a partir de Exercícios.
+const kFromWorkoutExercises = 'from-workout-exercises';
+
 class WorkoutNewScreen extends ConsumerStatefulWidget {
   const WorkoutNewScreen({super.key});
 
@@ -488,7 +491,7 @@ class _WorkoutExercisesScreenState
                     onPressed: () {
                       // atalho: preenche demo e vai ao resumo
                       ref.read(workoutDraftProvider.notifier).seedDemoBlocks();
-                      context.push('/treino/resumo');
+                      context.push('/treino/resumo', extra: kFromWorkoutExercises);
                     },
                     icon: const Icon(Icons.add, color: WorkoutUi.text),
                   ),
@@ -623,7 +626,10 @@ class _WorkoutExercisesScreenState
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 child: FilledButton(
-                  onPressed: () => context.push('/treino/resumo'),
+                  onPressed: () => context.push(
+                    '/treino/resumo',
+                    extra: kFromWorkoutExercises,
+                  ),
                   style: FilledButton.styleFrom(
                     backgroundColor: WorkoutUi.blue,
                     foregroundColor: Colors.white,
@@ -703,7 +709,7 @@ class WorkoutSummaryScreen extends ConsumerWidget {
             if (blocks.isEmpty)
               Expanded(
                 child: _SummaryEmptyState(
-                  onAdd: () => context.go('/treino/exercicios'),
+                  onAdd: () => _addExercises(context),
                 ),
               )
             else ...[
@@ -818,6 +824,18 @@ class WorkoutSummaryScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Volta para Exercícios preservando a pilha: se o Resumo foi aberto a
+  /// partir de Exercícios, só faz pop; senão empilha Exercícios.
+  void _addExercises(BuildContext context) {
+    final fromExercises =
+        GoRouterState.of(context).extra == kFromWorkoutExercises;
+    if (fromExercises && context.canPop()) {
+      context.pop();
+    } else {
+      context.push('/treino/exercicios');
+    }
   }
 
   /// Aguarda o salvamento; só confirma e volta para Meus Treinos no sucesso.
