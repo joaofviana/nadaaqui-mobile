@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/config/api_config.dart';
+import '../../core/network/api_error.dart';
+import '../../core/network/dio_client.dart';
+import '../../core/session/session_store.dart';
 import '../../data/api/workout_api.dart';
 
 enum PoolLength { m25, m50 }
@@ -117,6 +120,8 @@ class WorkoutDraft {
     this.saved = const [],
     this.loading = false,
     this.error,
+    this.saving = false,
+    this.editingPlanId,
   });
 
   final String name;
@@ -126,6 +131,13 @@ class WorkoutDraft {
   final List<SavedWorkout> saved;
   final bool loading;
   final String? error;
+
+  /// `true` enquanto `saveCurrent()` aguarda o servidor.
+  final bool saving;
+
+  /// Id do plano salvo aberto no rascunho (via [WorkoutDraftStore.loadSavedIntoDraft]).
+  /// Quando presente, salvar atualiza o plano em vez de criar outro.
+  final String? editingPlanId;
 
   int get totalMeters =>
       blocks.fold(0, (sum, b) => sum + b.totalMeters);
@@ -145,6 +157,9 @@ class WorkoutDraft {
     bool? loading,
     String? error,
     bool clearError = false,
+    bool? saving,
+    String? editingPlanId,
+    bool clearEditingPlanId = false,
   }) {
     return WorkoutDraft(
       name: name ?? this.name,
@@ -154,6 +169,10 @@ class WorkoutDraft {
       saved: saved ?? this.saved,
       loading: loading ?? this.loading,
       error: clearError ? null : (error ?? this.error),
+      saving: saving ?? this.saving,
+      editingPlanId: clearEditingPlanId
+          ? null
+          : (editingPlanId ?? this.editingPlanId),
     );
   }
 }
@@ -243,10 +262,46 @@ const catalogExercises = <CatalogExercise>[
   ),
 ];
 
+/// Liga o salvamento remoto (Supabase). Sobrescrito nos testes.
+final workoutRemoteEnabledProvider =
+    Provider<bool>((ref) => ApiConfig.useSupabase);
+
+enum WorkoutSaveStatus { saved, needsLogin, failed, busy }
+
+/// Resultado de [WorkoutDraftStore.saveCurrent].
+class WorkoutSaveResult {
+  const WorkoutSaveResult._(this.status, {this.workout, this.message});
+
+  const WorkoutSaveResult.saved(SavedWorkout workout)
+      : this._(WorkoutSaveStatus.saved, workout: workout);
+
+  const WorkoutSaveResult.needsLogin()
+      : this._(WorkoutSaveStatus.needsLogin, message: kWorkoutSaveLoginMsg);
+
+  const WorkoutSaveResult.failed(String message)
+      : this._(WorkoutSaveStatus.failed, message: message);
+
+  const WorkoutSaveResult.busy() : this._(WorkoutSaveStatus.busy);
+
+  final WorkoutSaveStatus status;
+  final SavedWorkout? workout;
+  final String? message;
+
+  bool get isSaved => status == WorkoutSaveStatus.saved;
+}
+
+const kWorkoutSaveLoginMsg = 'Entre na sua conta para salvar o treino.';
+const kWorkoutSaveFailMsg =
+    'Não foi possível salvar o treino. Verifique sua conexão e tente de novo.';
+const kWorkoutSaveEmptyMsg = 'Adicione ao menos um exercício antes de salvar.';
+const kWorkoutSaveNameMsg = 'Dê um nome ao treino antes de salvar.';
+
 class WorkoutDraftStore extends Notifier<WorkoutDraft> {
+  bool get _remote => ref.read(workoutRemoteEnabledProvider);
+
   @override
   WorkoutDraft build() {
-    if (ApiConfig.useSupabase) {
+    if (ref.read(workoutRemoteEnabledProvider)) {
       unawaited(reloadSaved());
       return const WorkoutDraft(loading: true);
     }
@@ -254,7 +309,7 @@ class WorkoutDraftStore extends Notifier<WorkoutDraft> {
   }
 
   Future<void> reloadSaved() async {
-    if (!ApiConfig.useSupabase) return;
+    if (!_remote) return;
     try {
       final list = await ref.read(workoutApiProvider).listMyWorkouts();
       state = state.copyWith(saved: list, loading: false, clearError: true);
@@ -282,6 +337,7 @@ class WorkoutDraftStore extends Notifier<WorkoutDraft> {
       pool: w.pool,
       focus: w.focus,
       blocks: List.of(w.blocks),
+      editingPlanId: w.id,
     );
   }
 
@@ -357,32 +413,53 @@ class WorkoutDraftStore extends Notifier<WorkoutDraft> {
     );
   }
 
-  /// Salva no Supabase (ou só em memória se mock).
-  Future<SavedWorkout?> saveCurrent() async {
-    if (state.blocks.isEmpty) return null;
+  /// Salva no Supabase via RPC `save_workout_plan` (ou só em memória se
+  /// mock). Em caso de falha, mantém o rascunho para tentar de novo.
+  Future<WorkoutSaveResult> saveCurrent() async {
+    if (state.saving) return const WorkoutSaveResult.busy();
+    if (state.blocks.isEmpty) {
+      return const WorkoutSaveResult.failed(kWorkoutSaveEmptyMsg);
+    }
 
-    if (ApiConfig.useSupabase) {
+    if (_remote) {
+      final token = ref.read(sessionStoreProvider)?.accessToken;
+      if (token == null || token.isEmpty) {
+        state = state.copyWith(error: kWorkoutSaveLoginMsg);
+        return const WorkoutSaveResult.needsLogin();
+      }
+
+      state = state.copyWith(saving: true, clearError: true);
       try {
         final saved = await ref.read(workoutApiProvider).saveWorkout(
               name: state.name,
               pool: state.pool,
               focus: state.focus,
               blocks: state.blocks,
+              planId: state.editingPlanId,
             );
         state = state.copyWith(
           saved: [saved, ...state.saved.where((s) => s.id != saved.id)],
           blocks: const [],
+          saving: false,
+          clearEditingPlanId: true,
           clearError: true,
         );
-        return saved;
-      } catch (_) {
-        state = state.copyWith(error: 'Falha ao salvar treino no servidor.');
-        return null;
+        return WorkoutSaveResult.saved(saved);
+      } catch (e) {
+        final err = extractApiError(e);
+        if (_isUnauthorized(err)) {
+          state = state.copyWith(saving: false, error: kWorkoutSaveLoginMsg);
+          return const WorkoutSaveResult.needsLogin();
+        }
+        final msg = _isValidation(err) ? kWorkoutSaveNameMsg : kWorkoutSaveFailMsg;
+        state = state.copyWith(saving: false, error: msg);
+        return WorkoutSaveResult.failed(msg);
       }
     }
 
+    final editingId = state.editingPlanId;
     final w = SavedWorkout(
-      id: 'sw-${DateTime.now().millisecondsSinceEpoch}',
+      id: editingId ?? 'sw-${DateTime.now().millisecondsSinceEpoch}',
       name: state.name,
       pool: state.pool,
       focus: state.focus,
@@ -390,14 +467,27 @@ class WorkoutDraftStore extends Notifier<WorkoutDraft> {
       createdAt: DateTime.now(),
     );
     state = state.copyWith(
-      saved: [w, ...state.saved],
+      saved: [w, ...state.saved.where((s) => s.id != w.id)],
       blocks: const [],
+      clearEditingPlanId: true,
+      clearError: true,
     );
-    return w;
+    return WorkoutSaveResult.saved(w);
   }
 
+  /// RPCs do back levantam `UNAUTHORIZED` (P0001) sem sessão; PostgREST
+  /// devolve 401 para JWT ausente/expirado.
+  static bool _isUnauthorized(ApiError err) =>
+      err.code == ApiErrorCode.unauthorized ||
+      err.statusCode == 401 ||
+      err.message == 'UNAUTHORIZED';
+
+  static bool _isValidation(ApiError err) =>
+      err.code == ApiErrorCode.validationError ||
+      err.message == 'VALIDATION_ERROR';
+
   Future<bool> startSaved(String planId) async {
-    if (!ApiConfig.useSupabase) return true;
+    if (!_remote) return true;
     try {
       await ref.read(workoutApiProvider).startWorkout(planId: planId);
       return true;
@@ -408,7 +498,7 @@ class WorkoutDraftStore extends Notifier<WorkoutDraft> {
   }
 
   Future<void> deleteSaved(String planId) async {
-    if (ApiConfig.useSupabase) {
+    if (_remote) {
       try {
         await ref.read(workoutApiProvider).deleteWorkout(planId);
       } catch (_) {
