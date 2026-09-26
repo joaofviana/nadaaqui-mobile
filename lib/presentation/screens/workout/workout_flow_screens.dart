@@ -666,6 +666,7 @@ class WorkoutSummaryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final draft = ref.watch(workoutDraftProvider);
     final blocks = draft.blocks;
+    final saving = draft.saving;
 
     // se vazio, seed demo para bater com a captura
     if (blocks.isEmpty) {
@@ -777,19 +778,13 @@ class WorkoutSummaryScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
               child: FilledButton(
-                onPressed: () {
-                  ref.read(workoutDraftProvider.notifier).saveCurrent();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Treino salvo! Boa natação 🏊'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                  context.go('/treino');
-                },
+                key: const ValueKey('workout-save-button'),
+                onPressed: saving ? null : () => _save(context, ref),
                 style: FilledButton.styleFrom(
                   backgroundColor: WorkoutUi.blue,
                   foregroundColor: Colors.white,
+                  disabledBackgroundColor: WorkoutUi.blue,
+                  disabledForegroundColor: Colors.white,
                   minimumSize: const Size.fromHeight(56),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -799,20 +794,58 @@ class WorkoutSummaryScreen extends ConsumerWidget {
                     fontSize: 17,
                   ),
                 ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('Iniciar Treino'),
-                    SizedBox(width: 8),
-                    Icon(Icons.chevron_right),
-                  ],
-                ),
+                child: saving
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Iniciar Treino'),
+                          SizedBox(width: 8),
+                          Icon(Icons.chevron_right),
+                        ],
+                      ),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  /// Aguarda o salvamento; só confirma e volta para Meus Treinos no sucesso.
+  /// Na falha, mantém o rascunho na tela e mostra o erro.
+  Future<void> _save(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
+    final result = await ref.read(workoutDraftProvider.notifier).saveCurrent();
+    switch (result.status) {
+      case WorkoutSaveStatus.busy:
+        return;
+      case WorkoutSaveStatus.saved:
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Treino salvo! Boa natação 🏊'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        router.go('/treino');
+      case WorkoutSaveStatus.needsLogin:
+      case WorkoutSaveStatus.failed:
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(result.message ?? kWorkoutSaveFailMsg),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+    }
   }
 
   String _fmtBig(int m) {
