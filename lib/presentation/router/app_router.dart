@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../screens/auth/login_screen.dart';
 import '../screens/challenges/challenges_screen.dart';
+import '../screens/clubs/club_detail_screen.dart';
+import '../screens/clubs/create_club_screen.dart';
+import '../screens/clubs/create_event_screen.dart';
 import '../screens/comments/comments_screen.dart';
 import '../screens/compose/compose_screen.dart';
 import '../screens/config/config_screen.dart';
@@ -49,13 +52,10 @@ GoRouter createAppRouter(Ref ref) {
       final isAuthRoute = loc == '/entrar';
       final isOnboarding = loc == '/onboarding';
 
-      // Ainda carregando prefs — fica no onboarding para não flashar login.
       if (!onboarding.hydrated && !isAuthenticated) {
         return isOnboarding ? null : '/onboarding';
       }
 
-      // Onboarding v2 ainda não concluído → SEMPRE mostra, mesmo se havia sessão
-      // antiga (força ver o HQ após update do APK).
       if (!onboarding.done) {
         return isOnboarding ? null : '/onboarding';
       }
@@ -100,6 +100,29 @@ GoRouter createAppRouter(Ref ref) {
         path: '/desafios',
         parentNavigatorKey: _rootKey,
         builder: (context, state) => const ChallengesScreen(),
+      ),
+      GoRoute(
+        path: '/clubes/novo',
+        parentNavigatorKey: _rootKey,
+        builder: (context, state) => const CreateClubScreen(),
+      ),
+      GoRoute(
+        path: '/clubes/:clubId',
+        parentNavigatorKey: _rootKey,
+        builder: (context, state) {
+          final id = state.pathParameters['clubId']!;
+          return ClubDetailScreen(clubId: id);
+        },
+        routes: [
+          GoRoute(
+            path: 'evento',
+            parentNavigatorKey: _rootKey,
+            builder: (context, state) {
+              final id = state.pathParameters['clubId']!;
+              return CreateEventScreen(clubId: id);
+            },
+          ),
+        ],
       ),
       GoRoute(
         path: '/usuario/:userId',
