@@ -28,19 +28,23 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-0.1.6-onboarding-force.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-0.1.7-login-clubs.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.6-onboarding-force-${{ steps.timestamp.outputs.ts }}
-          name: NadaAqui 0.1.6 — Onboarding força (v2)
+          tag_name: v0.1.7-login-clubs-${{ steps.timestamp.outputs.ts }}
+          name: NadaAqui 0.1.7 — Login + Clubes
           body: |
-            **Correção:** o app guardava "já vi onboarding" no celular e pulava as telas novas.
+            ## Nesta versão
 
-            Agora usa chave `onboarding.v2.done` — **este APK mostra o onboarding HQ na primeira abertura**, mesmo se você já tinha instalado antes.
+            - **Login moderno:** abas Entrar/Criar, mostrar senha, labels, CTA teal
+            - **Clubes:** lista, criar clube, detalhe, criar evento, RSVP
+            - Onboarding HQ (v2 force)
 
-            Layout: logo topo, foto HQ, CTA teal, 4 passos.
+            ### Clubes no backend
+            Aplique a migration no Supabase se ainda não rodou:
+            `20260927130000_clubs_events.sql`
 
-            Ainda assim: se sobrescrever sem desinstalar e o Android mantiver dados estranhos, desinstale uma vez.
-          files: dist/nadaaqui-0.1.6-onboarding-force.apk
+            Sideload Android. Desinstale a versão antiga se o onboarding não aparecer.
+          files: dist/nadaaqui-0.1.7-login-clubs.apk
           target_commitish: main
           make_latest: true
