@@ -16,6 +16,9 @@ import '../screens/places/places_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/profile/public_profile_screen.dart';
 import '../screens/workout/workout_builder_screen.dart';
+import '../screens/workout/workout_exercises_screen.dart';
+import '../screens/workout/workout_new_screen.dart';
+import '../screens/workout/workout_summary_screen.dart';
 import '../shell/main_shell.dart';
 import '../../core/onboarding/onboarding_store.dart';
 import '../../core/session/session_store.dart';
@@ -167,6 +170,21 @@ GoRouter createAppRouter(Ref ref) {
               GoRoute(
                 path: '/treino',
                 builder: (context, state) => const WorkoutBuilderScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'novo',
+                    builder: (context, state) => const WorkoutNewScreen(),
+                  ),
+                  GoRoute(
+                    path: 'exercicios',
+                    builder: (context, state) =>
+                        const WorkoutExercisesScreen(),
+                  ),
+                  GoRoute(
+                    path: 'resumo',
+                    builder: (context, state) => const WorkoutSummaryScreen(),
+                  ),
+                ],
               ),
             ],
           ),
