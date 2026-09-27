@@ -1,9 +1,11 @@
 import 'package:app_settings/app_settings.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../../core/config/api_config.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/prefs/app_prefs.dart';
 import '../../../core/session/session_store.dart';
@@ -32,7 +34,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         setState(() => _version = '${info.version}+${info.buildNumber}');
       }
     }).catchError((_) {
-      if (mounted) setState(() => _version = '0.1.7');
+      if (mounted) setState(() => _version = '0.1.8');
     });
   }
 
@@ -87,7 +89,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         showInPresence: user.showInPresence,
       );
       ref.read(sessionStoreProvider.notifier).updateUser(updated);
-      // Best-effort no backend (perfil)
       try {
         final dio = ref.read(dioProvider);
         await dio.patch(
@@ -179,15 +180,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final session = ref.read(sessionStoreProvider);
       if (session == null) return;
       final dio = ref.read(dioProvider);
-      // Supabase GoTrue user update
-      final root = session.accessToken;
+      var root = ApiConfig.supabaseUrl.trim();
+      while (root.endsWith('/')) {
+        root = root.substring(0, root.length - 1);
+      }
       await dio.put(
-        '${_authRoot()}/user',
+        '$root/auth/v1/user',
         data: {'password': p1},
         options: Options(
           headers: {
-            'apikey': _anonKey(),
-            'Authorization': 'Bearer $root',
+            'apikey': ApiConfig.supabaseAnonKey,
+            'Authorization': 'Bearer ${session.accessToken}',
           },
         ),
       );
@@ -205,19 +208,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         );
       }
     }
-  }
-
-  String _authRoot() {
-    // Import via ApiConfig would be cleaner — inline from dio base is enough
-    return 'https://hanqanaaimzthlqtrmks.supabase.co/auth/v1';
-  }
-
-  String _anonKey() {
-    // Prefer reading from existing session traffic; key is in CI define
-    return const String.fromEnvironment(
-      'SUPABASE_ANON_KEY',
-      defaultValue: '',
-    );
   }
 
   Future<void> _deleteAccount() async {
@@ -323,7 +313,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       body: ListView(
         children: [
-          // ── Conta ───────────────────────────────────────────
           _Section('Conta'),
           if (user != null) ...[
             ListTile(
@@ -372,8 +361,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: Text('Entrar', style: TextStyle(color: t.accent)),
               onTap: () => context.push('/entrar'),
             ),
-
-          // ── Privacidade ─────────────────────────────────────
           _Section('Privacidade'),
           SwitchListTile(
             title: Text('Mostrar na presença do local',
@@ -411,8 +398,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             trailing: Icon(Icons.chevron_right, color: t.textMuted),
             onTap: () => context.push('/legal/termos'),
           ),
-
-          // ── Localização ─────────────────────────────────────
           _Section('Localização'),
           ListTile(
             title: Text('Permissões do sistema',
@@ -426,21 +411,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               type: AppSettingsType.location,
             ),
           ),
-
-          // ── Notificações ────────────────────────────────────
           _Section('Notificações'),
           SwitchListTile(
             title: Text('Notificações', style: TextStyle(color: t.text)),
             subtitle: Text(
-              'Preferência salva. Push chega em breve.',
+              'Preferência salva. Push em breve.',
               style: TextStyle(color: t.textMuted, fontSize: 13),
             ),
             value: prefs.notificationsEnabled,
             activeColor: t.accent,
             onChanged: prefsN.setNotificationsEnabled,
           ),
-
-          // ── Preferências ────────────────────────────────────
           _Section('Preferências'),
           ListTile(
             title: Text('Tema', style: TextStyle(color: t.text)),
@@ -463,8 +444,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             activeColor: t.accent,
             onChanged: prefsN.setDistanceInKm,
           ),
-
-          // ── Sobre ───────────────────────────────────────────
           _Section('Sobre'),
           ListTile(
             title: Text('Versão', style: TextStyle(color: t.text)),
