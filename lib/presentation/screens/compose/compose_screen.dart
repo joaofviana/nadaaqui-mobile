@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -21,7 +22,7 @@ ComposeKind composeKindFromQuery(String? raw) {
   }
 }
 
-/// Abre `/entrar` se precisar e em seguida a compose estilo Twitter.
+/// Abre login se precisar e em seguida a compose.
 Future<void> openCompose(
   BuildContext context,
   WidgetRef ref, {
@@ -48,7 +49,7 @@ Future<void> openCompose(
   );
 }
 
-/// Composer full-screen moderno inspirado em Instagram/Twitter
+/// Composer full-screen sóbrio (texto + avaliação + local).
 class ComposeScreen extends ConsumerStatefulWidget {
   const ComposeScreen({
     super.key,
@@ -67,21 +68,37 @@ class ComposeScreen extends ConsumerStatefulWidget {
 
 class _ComposeScreenState extends ConsumerState<ComposeScreen> {
   static const _maxChars = 280;
+  static const _starColor = Color(0xFFFBBF24);
+
   final _text = TextEditingController();
+  final _placeCtrl = TextEditingController();
   int _stars = 0;
-  bool _isPublishing = false;
+  bool _publishing = false;
+  bool _editingPlace = false;
 
   @override
   void initState() {
     super.initState();
+    if (widget.placeName != null) {
+      _placeCtrl.text = widget.placeName!;
+    }
     _text.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
     _text.dispose();
+    _placeCtrl.dispose();
     super.dispose();
   }
+
+  String? get _placeLabel {
+    final t = _placeCtrl.text.trim();
+    return t.isEmpty ? null : t;
+  }
+
+  bool get _hasDraft =>
+      _text.text.trim().isNotEmpty || _stars > 0 || _placeCtrl.text.trim().isNotEmpty;
 
   bool get _canPublish {
     final body = _text.text.trim();
@@ -90,51 +107,77 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
       case ComposeKind.review:
         return _stars > 0 && body.isNotEmpty;
       case ComposeKind.checkIn:
-        return body.isNotEmpty || (widget.placeName?.isNotEmpty ?? false);
+        return body.isNotEmpty || (_placeLabel != null);
       case ComposeKind.post:
         return body.isNotEmpty;
     }
   }
 
   String get _title => switch (widget.kind) {
-        ComposeKind.review => 'Avaliar',
+        ComposeKind.review => 'Avaliação',
         ComposeKind.checkIn => 'Check-in',
-        ComposeKind.post => 'Nova publicação',
-      };
-
-  String get _cta => switch (widget.kind) {
-        ComposeKind.review => 'Avaliar',
-        ComposeKind.checkIn => 'Publicar',
         ComposeKind.post => 'Publicar',
       };
 
   String get _hint => switch (widget.kind) {
-        ComposeKind.review => 'Como foi nadar aqui? Conte sua experiência...',
-        ComposeKind.checkIn => 'A água está ótima? Compartilhe com a comunidade!',
-        ComposeKind.post => 'O que está rolando na água? Compartilhe seu nado!',
+        ComposeKind.review =>
+          'Faixa, água, estrutura… o que importa para quem for nadar aqui.',
+        ComposeKind.checkIn => 'Opcional: como está a piscina agora.',
+        ComposeKind.post => 'Ex.: 2 km de crawl, água boa, pouca gente.',
       };
 
-  String _initial(String? name) {
-    final trimmed = name?.trim() ?? '';
-    if (trimmed.isEmpty) return 'N';
-    return trimmed.characters.first.toUpperCase();
+  Future<void> _onClose() async {
+    if (!_hasDraft) {
+      context.pop();
+      return;
+    }
+    final t = NadaTokens.of(context);
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: t.surface,
+        title: Text(
+          'Descartar?',
+          style: TextStyle(color: t.text, fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          'O texto não será salvo.',
+          style: TextStyle(color: t.textMuted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Continuar', style: TextStyle(color: t.textMuted)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Descartar',
+              style: TextStyle(color: t.error, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (discard == true && mounted) context.pop();
   }
 
   Future<void> _publish() async {
-    if (!_canPublish || _isPublishing) return;
-    setState(() => _isPublishing = true);
-    
+    if (!_canPublish || _publishing) return;
+    setState(() => _publishing = true);
+
     final session = ref.read(sessionStoreProvider);
     final raw = session?.user.displayName.trim() ?? '';
     final name = raw.isEmpty ? 'Você' : raw;
     final letter = name.characters.first.toUpperCase();
-    final handle = '@${name.toLowerCase().replaceAll(RegExp(r'\s+'), '')}';
+    final handle =
+        '@${name.toLowerCase().replaceAll(RegExp(r'\s+'), '')}';
     final kind = switch (widget.kind) {
       ComposeKind.review => FeedPostKind.review,
       ComposeKind.checkIn => FeedPostKind.checkIn,
       ComposeKind.post => FeedPostKind.text,
     };
-    
+
     try {
       await ref.read(feedStoreProvider.notifier).publish(
             FeedPost(
@@ -147,20 +190,28 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
               createdAt: DateTime.now(),
               text: _text.text.trim(),
               placeId: widget.placeId,
-              placeName: widget.placeName,
+              placeName: _placeLabel,
               stars: widget.kind == ComposeKind.review ? _stars : null,
               authorId: session?.user.id,
             ),
           );
       if (!mounted) return;
+      HapticFeedback.lightImpact();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Publicado'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
       context.go('/feed');
     } catch (_) {
       if (!mounted) return;
-      setState(() => _isPublishing = false);
+      setState(() => _publishing = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Não foi possível publicar. Tente de novo.'),
-          backgroundColor: Colors.red,
+          backgroundColor: NadaTokens.of(context).errorBg,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -170,91 +221,85 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
   @override
   Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
-    final left = _maxChars - _text.text.characters.length;
+    final used = _text.text.characters.length;
+    final left = _maxChars - used;
     final session = ref.watch(sessionStoreProvider);
     final userName = session?.user.displayName ?? 'Você';
-    
-    return Scaffold(
-      backgroundColor: t.bg,
-      appBar: AppBar(
+    final letter = userName.trim().isEmpty
+        ? 'N'
+        : userName.trim().characters.first.toUpperCase();
+
+    return PopScope(
+      canPop: !_hasDraft,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        await _onClose();
+      },
+      child: Scaffold(
         backgroundColor: t.bg,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.close, color: t.text),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          _title,
-          style: TextStyle(
-            color: t.text,
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
+        appBar: AppBar(
+          backgroundColor: t.bg,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.close, color: t.text),
+            onPressed: _onClose,
           ),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: ElevatedButton(
-              onPressed: _canPublish && !_isPublishing ? _publish : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _canPublish ? t.accent : t.surface2,
-                foregroundColor: _canPublish ? Colors.black : t.textMuted,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-              ),
-              child: _isPublishing
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
-                      ),
-                    )
-                  : Text(
-                      _cta,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+          title: Text(
+            _title,
+            style: TextStyle(
+              color: t.text,
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
             ),
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: TextButton(
+                onPressed: _canPublish && !_publishing ? _publish : null,
+                style: TextButton.styleFrom(
+                  foregroundColor: t.accent,
+                  disabledForegroundColor: t.textMuted.withValues(alpha: 0.4),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+                child: _publishing
+                    ? SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: t.accent,
+                        ),
+                      )
+                    : const Text(
+                        'Publicar',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 children: [
-                  const SizedBox(height: 8),
-                  // Avatar e input
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [t.accent, t.accent.withValues(alpha: 0.7)],
-                          ),
-                          shape: BoxShape.circle,
-                        ),
-                        child: CircleAvatar(
-                          radius: 20,
-                          backgroundColor: Colors.transparent,
-                          child: Text(
-                            _initial(userName),
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 16,
-                            ),
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: t.surface2,
+                        child: Text(
+                          letter,
+                          style: TextStyle(
+                            color: t.accent,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
                           ),
                         ),
                       ),
@@ -263,182 +308,276 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
                         child: TextField(
                           controller: _text,
                           maxLines: null,
+                          minLines: 4,
                           maxLength: _maxChars,
                           autofocus: true,
                           style: TextStyle(
                             color: t.text,
-                            fontSize: 16,
-                            height: 1.5,
-                            fontWeight: FontWeight.w400,
+                            fontSize: 17,
+                            height: 1.45,
                           ),
                           decoration: InputDecoration(
                             hintText: _hint,
                             hintStyle: TextStyle(
-                              color: t.textMuted.withValues(alpha: 0.6),
-                              fontSize: 16,
+                              color: t.textMuted,
+                              fontSize: 17,
+                              height: 1.45,
                             ),
                             border: InputBorder.none,
                             counterText: '',
-                            filled: false,
                             contentPadding: EdgeInsets.zero,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  
-                  // Rating stars para review
                   if (widget.kind == ComposeKind.review) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Nota',
+                      style: TextStyle(
+                        color: t.textMuted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     Row(
                       children: List.generate(5, (i) {
                         final n = i + 1;
                         final on = n <= _stars;
                         return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: GestureDetector(
-                            onTap: () => setState(() => _stars = n),
-                            child: Icon(
-                              on ? Icons.star : Icons.star_border,
-                              color: on ? t.accent : t.textMuted,
-                              size: 32,
+                          padding: const EdgeInsets.only(right: 6),
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 40,
+                              minHeight: 40,
+                            ),
+                            onPressed: () => setState(() => _stars = n),
+                            icon: Icon(
+                              on ? Icons.star_rounded : Icons.star_outline_rounded,
+                              color: on ? _starColor : t.textMuted,
+                              size: 34,
                             ),
                           ),
                         );
                       }),
                     ),
+                    if (_stars == 0)
+                      Text(
+                        'Escolha de 1 a 5 estrelas.',
+                        style: TextStyle(color: t.textMuted, fontSize: 13),
+                      ),
                   ],
-                  
-                  // Place chip
-                  if (widget.placeName != null && widget.placeName!.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    _ModernPlaceChip(name: widget.placeName!),
-                  ],
-                  
-                  // Character counter
-                  const SizedBox(height: 8),
-                  Text(
-                    '$left caracteres restantes',
-                    style: TextStyle(
-                      color: left < 20 ? t.error : t.textMuted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                  const SizedBox(height: 16),
+                  if (_placeLabel != null && !_editingPlace)
+                    _PlaceRow(
+                      name: _placeLabel!,
+                      onClear: widget.placeId != null
+                          ? null
+                          : () {
+                              setState(() {
+                                _placeCtrl.clear();
+                                _editingPlace = false;
+                              });
+                            },
+                      onEdit: widget.placeId != null
+                          ? null
+                          : () => setState(() => _editingPlace = true),
+                    )
+                  else if (_editingPlace ||
+                      (widget.placeId == null && _placeLabel == null))
+                    _PlaceEditor(
+                      controller: _placeCtrl,
+                      onDone: () => setState(() => _editingPlace = false),
+                      onCancel: () {
+                        if (widget.placeName == null) {
+                          _placeCtrl.clear();
+                        }
+                        setState(() => _editingPlace = false);
+                      },
+                    )
+                  else
+                    TextButton.icon(
+                      onPressed: () => setState(() => _editingPlace = true),
+                      icon: Icon(Icons.place_outlined,
+                          size: 18, color: t.accent),
+                      label: Text(
+                        'Adicionar local',
+                        style: TextStyle(
+                          color: t.accent,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        alignment: Alignment.centerLeft,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
-          ),
-          
-          // Bottom toolbar
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: t.bg,
-              border: Border(
-                top: BorderSide(color: t.hairline),
+            SafeArea(
+              top: false,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(color: t.hairline)),
+                ),
+                child: Row(
+                  children: [
+                    if (widget.kind == ComposeKind.review && _stars > 0)
+                      Text(
+                        '$_stars de 5',
+                        style: TextStyle(
+                          color: t.textMuted,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    const Spacer(),
+                    Text(
+                      '$left',
+                      style: TextStyle(
+                        color: left < 0
+                            ? t.error
+                            : left < 20
+                                ? _starColor
+                                : t.textMuted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            child: Row(
-              children: [
-                _ToolbarButton(
-                  icon: Icons.image_outlined,
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('📸 Fotos nos posts em breve!'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(width: 8),
-                _ToolbarButton(
-                  icon: Icons.gif_box_outlined,
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('🎬 GIFs em breve!'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(width: 8),
-                _ToolbarButton(
-                  icon: Icons.emoji_emotions_outlined,
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('😀 Emojis em breve!'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                ),
-                const Spacer(),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-class _ModernPlaceChip extends StatelessWidget {
-  const _ModernPlaceChip({required this.name});
-
-  final String name;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = NadaTokens.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: t.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: t.border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.place_outlined, size: 16, color: t.accent),
-          const SizedBox(width: 6),
-          Text(
-            name,
-            style: TextStyle(
-              color: t.text,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ToolbarButton extends StatelessWidget {
-  const _ToolbarButton({
-    required this.icon,
-    required this.onTap,
+class _PlaceRow extends StatelessWidget {
+  const _PlaceRow({
+    required this.name,
+    this.onClear,
+    this.onEdit,
   });
 
-  final IconData icon;
-  final VoidCallback onTap;
+  final String name;
+  final VoidCallback? onClear;
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        child: Icon(icon, color: t.accent, size: 24),
+    return Material(
+      color: t.surface,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onEdit,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              Icon(Icons.place_outlined, size: 18, color: t.textMuted),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  name,
+                  style: TextStyle(
+                    color: t.text,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              if (onClear != null)
+                IconButton(
+                  onPressed: onClear,
+                  icon: Icon(Icons.close, size: 18, color: t.textMuted),
+                  visualDensity: VisualDensity.compact,
+                ),
+            ],
+          ),
+        ),
       ),
+    );
+  }
+}
+
+class _PlaceEditor extends StatelessWidget {
+  const _PlaceEditor({
+    required this.controller,
+    required this.onDone,
+    required this.onCancel,
+  });
+
+  final TextEditingController controller;
+  final VoidCallback onDone;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = NadaTokens.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          style: TextStyle(color: t.text, fontSize: 15),
+          decoration: InputDecoration(
+            hintText: 'Nome da piscina ou clube',
+            hintStyle: TextStyle(color: t.inputPlaceholder),
+            prefixIcon: Icon(Icons.place_outlined, color: t.textMuted),
+            filled: true,
+            fillColor: t.surface,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: t.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: t.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: t.accent),
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          ),
+          onSubmitted: (_) => onDone(),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton(
+              onPressed: onCancel,
+              child: Text('Cancelar', style: TextStyle(color: t.textMuted)),
+            ),
+            TextButton(
+              onPressed: onDone,
+              child: Text(
+                'Pronto',
+                style: TextStyle(
+                  color: t.accent,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
