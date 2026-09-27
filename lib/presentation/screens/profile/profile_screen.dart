@@ -11,7 +11,6 @@ import '../../widgets/guest_gate.dart';
 import '../../widgets/streak_counter.dart';
 
 /// Perfil próprio — identidade, progresso quieto, histórico real.
-/// Sem nível/emoji/conquistas rainbow (gamificação genérica).
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
@@ -63,19 +62,33 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ),
               ListTile(
-                leading: Icon(Icons.emoji_events_outlined, color: t.textMuted),
-                title: Text('Desafios', style: TextStyle(color: t.text)),
+                leading: Icon(Icons.shield_outlined, color: t.textMuted),
+                title: Text(
+                  'Conta e privacidade',
+                  style: TextStyle(color: t.text),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
-                  context.push('/desafios');
+                  context.push('/legal/conta');
                 },
               ),
               ListTile(
-                leading: Icon(Icons.tune, color: t.textMuted),
-                title: Text('Configuração', style: TextStyle(color: t.text)),
+                leading: Icon(Icons.description_outlined, color: t.textMuted),
+                title: Text(
+                  'Política de Privacidade',
+                  style: TextStyle(color: t.text),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
-                  context.push('/perfil/config');
+                  context.push('/legal/privacidade');
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.gavel_outlined, color: t.textMuted),
+                title: Text('Termos de Uso', style: TextStyle(color: t.text)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push('/legal/termos');
                 },
               ),
               if (ref.read(sessionStoreProvider) != null)
@@ -103,13 +116,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String _formatMeters(int meters) {
     if (meters >= 1000) {
       final km = meters / 1000;
-      return km >= 10 ? '${km.toStringAsFixed(0)} km' : '${km.toStringAsFixed(1)} km';
+      return km >= 10
+          ? '${km.toStringAsFixed(0)} km'
+          : '${km.toStringAsFixed(1)} km';
     }
     return '$meters m';
   }
 
   String _formatMinutes(int minutes) {
-    if (minutes < 60) return '${minutes} min';
+    if (minutes < 60) return '$minutes min';
     final h = minutes ~/ 60;
     final rest = minutes % 60;
     return rest == 0 ? '${h}h' : '${h}h ${rest}min';
@@ -457,9 +472,8 @@ class _WeekHeat extends StatelessWidget {
     return Row(
       children: List.generate(7, (i) {
         final n = i < week.length ? week[i] : 0;
-        final intensity = n == 0
-            ? 0.0
-            : (0.3 + (n * 0.18)).clamp(0.3, 1.0);
+        final intensity =
+            n == 0 ? 0.0 : (0.3 + (n * 0.18)).clamp(0.3, 1.0);
         return Expanded(
           child: Column(
             children: [
