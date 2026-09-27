@@ -28,23 +28,19 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-0.1.4-onboarding.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-0.1.5-onboarding-hq.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.4-onboarding-${{ steps.timestamp.outputs.ts }}
-          name: NadaAqui 0.1.4 — Onboarding polido
+          tag_name: v0.1.5-onboarding-hq-${{ steps.timestamp.outputs.ts }}
+          name: NadaAqui 0.1.5 — Onboarding HQ (mockup)
           body: |
-            ## O que tem nesta versão
+            Onboarding alinhado ao mockup:
+            - Logo NadaAqui no topo + Pular
+            - Foto HQ (1600px) com Ken Burns
+            - Título grande + CTA teal
+            - 4 passos: tribo → evolução → ritmo → localização
 
-            - **Onboarding 4 telas** (novo): tribo → evolução (card sessão) → ritmo → localização
-            - Teal brand, Ken Burns, CTA teal, copy PT-BR
-            - Perfil limpo, home carousel, treino dark, feed Clubes/Explorar/Seguindo
-            - Logo Dive + Supabase live
-
-            ### Como ver o onboarding de novo
-            Desinstale o app ou limpe os dados antes de instalar este APK.
-
-            Sideload Android.
-          files: dist/nadaaqui-0.1.4-onboarding.apk
+            **Desinstale o app antes** para ver o onboarding de novo.
+          files: dist/nadaaqui-0.1.5-onboarding-hq.apk
           target_commitish: main
           make_latest: true

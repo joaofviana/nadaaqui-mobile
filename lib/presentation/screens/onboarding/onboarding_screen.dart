@@ -11,7 +11,7 @@ import '../../../core/onboarding/onboarding_store.dart';
 part 'onboarding_ui.part.dart';
 part 'onboarding_pages.part.dart';
 
-/// Onboarding de 4 passos — imersivo, marca teal, copy em PT-BR.
+/// Onboarding 4 passos — layout premium alinhado ao mockup (logo, foto HQ, CTA teal).
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -28,15 +28,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
   static const _total = 4;
 
-  // Fotos de natação com foco em água / treino (Unsplash, q=80).
+  // Fotos Unsplash alta qualidade (1600px, q=90) — natação / água.
   static const _imgTribe =
-      'https://images.unsplash.com/photo-1519315901367-f34ff9154487?w=1400&q=85&auto=format';
+      'https://images.unsplash.com/photo-1519315901367-f34ff9154487?w=1600&q=90&auto=format&fit=crop';
   static const _imgEvolve =
-      'https://images.unsplash.com/photo-1530549387789-4c1017266635?w=1400&q=85&auto=format';
+      'https://images.unsplash.com/photo-1530549387789-4c1017266635?w=1600&q=90&auto=format&fit=crop';
   static const _imgPace =
-      'https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?w=1400&q=85&auto=format';
+      'https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?w=1600&q=90&auto=format&fit=crop';
   static const _imgGps =
-      'https://images.unsplash.com/photo-1505142468610-359e7d316be0?w=1400&q=85&auto=format';
+      'https://images.unsplash.com/photo-1505142468610-359e7d316be0?w=1600&q=90&auto=format&fit=crop';
 
   @override
   void initState() {
@@ -127,11 +127,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                     }
                     final delta = (page - index).clamp(-1.0, 1.0);
                     final fade = (1 - delta.abs()).clamp(0.0, 1.0);
-                    final slideX = delta * 36;
-                    final scale = 0.97 + (0.03 * fade);
+                    final slideX = delta * 28;
+                    final scale = 0.98 + (0.02 * fade);
 
                     return Opacity(
-                      opacity: 0.5 + (0.5 * fade),
+                      opacity: 0.55 + (0.45 * fade),
                       child: Transform.translate(
                         offset: Offset(slideX, 0),
                         child: Transform.scale(
@@ -146,27 +146,41 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                 );
               },
             ),
+            // Top chrome: logo + Pular (como no mockup)
             Positioned(
-              top: MediaQuery.paddingOf(context).top + 4,
-              right: 8,
-              child: AnimatedOpacity(
-                opacity: _exiting ? 0 : 1,
-                duration: const Duration(milliseconds: 200),
-                child: TextButton(
-                  onPressed: _skipToLogin,
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.white70,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
-                    ),
-                  ),
-                  child: const Text(
-                    'Pular',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                      letterSpacing: 0.2,
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                bottom: false,
+                child: AnimatedOpacity(
+                  opacity: _exiting ? 0 : 1,
+                  duration: const Duration(milliseconds: 200),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 12, 0),
+                    child: Row(
+                      children: [
+                        const _BrandMarkCompact(),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: _skipToLogin,
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.white70,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                          ),
+                          child: const Text(
+                            'Pular',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -186,13 +200,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
           imageUrl: _imgTribe,
           title: 'Conecte-se com\nsua tribo',
           subtitle:
-              'Encontre parceiros de treino e grupos\nlocais perto de você.',
+              'Encontre parceiros de treino e\ngrupos locais perto de você.',
           cta: 'Continuar',
           onCta: _next,
           pageIndex: 0,
           total: _total,
           active: _page == 0,
-          showBrand: true,
         );
       case 1:
         return _HeroPage(

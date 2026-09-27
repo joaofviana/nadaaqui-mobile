@@ -6,6 +6,31 @@ abstract final class _Ob {
   static const card = Color(0xFFF8FAFC);
 }
 
+/// Logo compacto no topo (mockup: ondas + NadaAqui).
+class _BrandMarkCompact extends StatelessWidget {
+  const _BrandMarkCompact();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.waves_rounded, color: _Ob.teal, size: 22),
+        const SizedBox(width: 8),
+        const Text(
+          'NadaAqui',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.3,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _Entrance extends StatefulWidget {
   const _Entrance({
     required this.child,
@@ -97,7 +122,7 @@ class _KenBurnsState extends State<_KenBurns>
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 14),
+      duration: const Duration(seconds: 16),
     );
     if (widget.active) _ctrl.repeat(reverse: true);
   }
@@ -123,8 +148,8 @@ class _KenBurnsState extends State<_KenBurns>
     return AnimatedBuilder(
       animation: _ctrl,
       builder: (context, child) {
-        final s = 1.0 + (_ctrl.value * 0.07);
-        final dx = (_ctrl.value - 0.5) * 12;
+        final s = 1.0 + (_ctrl.value * 0.06);
+        final dx = (_ctrl.value - 0.5) * 10;
         return Transform.translate(
           offset: Offset(dx, 0),
           child: Transform.scale(
@@ -155,11 +180,12 @@ class _HeroBg extends StatelessWidget {
         width: double.infinity,
         height: double.infinity,
         gaplessPlayback: true,
+        filterQuality: FilterQuality.high,
         frameBuilder: (context, child, frame, wasSync) {
           if (wasSync || frame != null) {
             return AnimatedOpacity(
               opacity: 1,
-              duration: const Duration(milliseconds: 420),
+              duration: const Duration(milliseconds: 480),
               curve: Curves.easeOut,
               child: child,
             );
@@ -195,6 +221,7 @@ class _OceanFallback extends StatelessWidget {
   }
 }
 
+/// Gradiente inferior forte para legibilidade do título (como no mockup).
 class _BottomScrim extends StatelessWidget {
   const _BottomScrim({this.heavy = false});
 
@@ -209,19 +236,19 @@ class _BottomScrim extends StatelessWidget {
           end: Alignment.bottomCenter,
           colors: heavy
               ? const [
-                  Color(0x33000000),
-                  Color(0x99000000),
+                  Color(0x22000000),
+                  Color(0x88000000),
                   Color(0xF2000000),
                 ]
               : const [
                   Colors.transparent,
-                  Colors.transparent,
-                  Color(0xB3000000),
-                  Color(0xF2000000),
+                  Color(0x66000000),
+                  Color(0xCC000000),
+                  Color(0xF5000000),
                 ],
           stops: heavy
-              ? const [0.0, 0.45, 1.0]
-              : const [0.0, 0.32, 0.62, 1.0],
+              ? const [0.0, 0.4, 1.0]
+              : const [0.0, 0.38, 0.62, 1.0],
         ),
       ),
     );
@@ -244,19 +271,11 @@ class _PageDots extends StatelessWidget {
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOutCubic,
           margin: const EdgeInsets.symmetric(horizontal: 3),
-          width: on ? 24 : 7,
+          width: on ? 18 : 7,
           height: 4,
           decoration: BoxDecoration(
             color: on ? _Ob.teal : Colors.white.withValues(alpha: 0.35),
             borderRadius: BorderRadius.circular(99),
-            boxShadow: on
-                ? [
-                    BoxShadow(
-                      color: _Ob.teal.withValues(alpha: 0.45),
-                      blurRadius: 8,
-                    ),
-                  ]
-                : null,
           ),
         );
       }),
@@ -294,20 +313,16 @@ class _PrimaryCtaState extends State<_PrimaryCta> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 110),
           width: double.infinity,
-          height: 54,
+          height: 56,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [_Ob.teal, _Ob.tealDeep],
-            ),
+            color: _Ob.teal,
             borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
-                color: _Ob.teal.withValues(alpha: _pressed ? 0.25 : 0.4),
-                blurRadius: _pressed ? 10 : 18,
-                offset: Offset(0, _pressed ? 3 : 8),
+                color: _Ob.teal.withValues(alpha: _pressed ? 0.28 : 0.45),
+                blurRadius: _pressed ? 12 : 20,
+                offset: Offset(0, _pressed ? 4 : 10),
               ),
             ],
           ),
@@ -317,7 +332,7 @@ class _PrimaryCtaState extends State<_PrimaryCta> {
               color: Color(0xFF042F2E),
               fontSize: 17,
               fontWeight: FontWeight.w800,
-              letterSpacing: 0.2,
+              letterSpacing: 0.15,
             ),
           ),
         ),
@@ -326,6 +341,7 @@ class _PrimaryCtaState extends State<_PrimaryCta> {
   }
 }
 
+/// Página hero no padrão do mockup: foto full + título grande + CTA.
 class _HeroPage extends StatelessWidget {
   const _HeroPage({
     super.key,
@@ -338,7 +354,6 @@ class _HeroPage extends StatelessWidget {
     required this.total,
     required this.active,
     this.overlayCard = false,
-    this.showBrand = false,
   });
 
   final String imageUrl;
@@ -350,10 +365,11 @@ class _HeroPage extends StatelessWidget {
   final int total;
   final bool active;
   final bool overlayCard;
-  final bool showBrand;
 
   @override
   Widget build(BuildContext context) {
+    final topPad = MediaQuery.paddingOf(context).top;
+
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -361,7 +377,7 @@ class _HeroPage extends StatelessWidget {
         const _BottomScrim(),
         if (overlayCard)
           Positioned(
-            top: MediaQuery.paddingOf(context).top + 52,
+            top: topPad + 72,
             left: 24,
             right: 24,
             child: _Entrance(
@@ -373,19 +389,10 @@ class _HeroPage extends StatelessWidget {
           ),
         SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 10, 24, 28),
+            padding: const EdgeInsets.fromLTRB(28, 56, 28, 28),
             child: Column(
               children: [
                 _PageDots(index: pageIndex, total: total),
-                if (showBrand) ...[
-                  const SizedBox(height: 20),
-                  _Entrance(
-                    active: active,
-                    delay: const Duration(milliseconds: 40),
-                    slide: 12,
-                    child: const _BrandMark(),
-                  ),
-                ],
                 const Spacer(),
                 _Entrance(
                   active: active,
@@ -395,14 +402,14 @@ class _HeroPage extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 34,
+                      fontSize: 36,
                       fontWeight: FontWeight.w800,
-                      height: 1.12,
-                      letterSpacing: -0.6,
+                      height: 1.1,
+                      letterSpacing: -0.8,
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 _Entrance(
                   active: active,
                   delay: const Duration(milliseconds: 150),
@@ -417,7 +424,7 @@ class _HeroPage extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 32),
                 _Entrance(
                   active: active,
                   delay: const Duration(milliseconds: 230),
@@ -426,39 +433,6 @@ class _HeroPage extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _BrandMark extends StatelessWidget {
-  const _BrandMark();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: _Ob.teal.withValues(alpha: 0.18),
-            shape: BoxShape.circle,
-            border: Border.all(color: _Ob.teal.withValues(alpha: 0.5)),
-          ),
-          child: const Icon(Icons.waves_rounded, color: _Ob.teal, size: 18),
-        ),
-        const SizedBox(width: 10),
-        const Text(
-          'NadaAqui',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.3,
           ),
         ),
       ],
