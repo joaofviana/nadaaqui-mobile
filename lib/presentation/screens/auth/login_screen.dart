@@ -102,7 +102,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               password: _password.text,
             );
       ref.read(sessionStoreProvider.notifier).setSession(session);
-      if (mounted) context.pop(true);
+      if (!mounted) return;
+      // push (guest gate) → pop; redirect de rota → go mapa
+      if (context.canPop()) {
+        context.pop(true);
+      } else {
+        context.go('/mapa');
+      }
     } catch (e) {
       final err = e is ApiError ? e : extractApiError(e);
       setState(() => _error = err.message);

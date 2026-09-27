@@ -173,15 +173,18 @@ GoRouter createAppRouter(Ref ref) {
                 routes: [
                   GoRoute(
                     path: 'novo',
+                    parentNavigatorKey: _rootKey,
                     builder: (context, state) => const WorkoutNewScreen(),
                   ),
                   GoRoute(
                     path: 'exercicios',
+                    parentNavigatorKey: _rootKey,
                     builder: (context, state) =>
                         const WorkoutExercisesScreen(),
                   ),
                   GoRoute(
                     path: 'resumo',
+                    parentNavigatorKey: _rootKey,
                     builder: (context, state) => const WorkoutSummaryScreen(),
                   ),
                 ],
