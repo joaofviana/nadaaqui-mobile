@@ -125,6 +125,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
   }
 
+  void _goBack() {
+    if (context.canPop()) {
+      context.pop(false);
+    } else {
+      // Redirect forçou /entrar sem stack — volta ao onboarding.
+      context.go('/onboarding');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
@@ -338,7 +347,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             _TextLink(
               label: 'Voltar',
               color: t.textMuted,
-              onTap: () => context.pop(false),
+              onTap: _goBack,
             ),
           ],
         ),
