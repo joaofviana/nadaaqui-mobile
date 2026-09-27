@@ -14,15 +14,8 @@ class WorkoutSummaryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final draft = ref.watch(workoutDraftProvider);
     final blocks = draft.blocks;
-
-    if (blocks.isEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(workoutDraftProvider.notifier).seedDemoBlocks();
-      });
-    }
-
-    final meters = draft.totalMeters == 0 ? 2400 : draft.totalMeters;
-    final mins = draft.estimatedMinutes == 0 ? 50 : draft.estimatedMinutes;
+    final meters = draft.totalMeters;
+    final mins = draft.estimatedMinutes;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(
@@ -101,36 +94,68 @@ class WorkoutSummaryScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                  itemCount: blocks.isEmpty ? 4 : blocks.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (context, i) {
-                    if (blocks.isEmpty) {
-                      const placeholders = [
-                        ('Aquecimento', '300m Solto (Braçada longa)'),
-                        ('Série Principal', '8×100m Crawl @ 1:40'),
-                        ('Educativo', '400m Pernada c/ Prancha e Palmar'),
-                        ('Desaquecimento', '100m Relaxamento'),
-                      ];
-                      final (t, d) = placeholders[i];
-                      return _BlockCard(
-                        title: t,
-                        detail: d,
-                        phase: WorkoutPhase.values[i % 4],
-                      );
-                    }
-                    final b = blocks[i];
-                    return _BlockCard(
-                      title: b.title,
-                      detail: b.detail,
-                      phase: b.phase,
-                      onRemove: () => ref
-                          .read(workoutDraftProvider.notifier)
-                          .removeBlock(b.id),
-                    );
-                  },
-                ),
+                child: blocks.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.pool_outlined,
+                                size: 48,
+                                color: WorkoutUi.muted,
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'Nenhum exercício ainda',
+                                style: TextStyle(
+                                  color: WorkoutUi.text,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 17,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Adicione nados e educativos\npara montar sua série.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: WorkoutUi.muted,
+                                  height: 1.4,
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              FilledButton.icon(
+                                onPressed: () =>
+                                    context.push('/treino/exercicios'),
+                                icon: const Icon(Icons.add),
+                                label: const Text('Adicionar exercícios'),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: WorkoutUi.teal,
+                                  foregroundColor: WorkoutUi.bg,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                        itemCount: blocks.length,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(height: 10),
+                        itemBuilder: (context, i) {
+                          final b = blocks[i];
+                          return _BlockCard(
+                            title: b.title,
+                            detail: b.detail,
+                            phase: b.phase,
+                            onRemove: () => ref
+                                .read(workoutDraftProvider.notifier)
+                                .removeBlock(b.id),
+                          );
+                        },
+                      ),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -140,24 +165,26 @@ class WorkoutSummaryScreen extends ConsumerWidget {
                       width: double.infinity,
                       height: 54,
                       child: FilledButton(
-                        onPressed: () async {
-                          HapticFeedback.mediumImpact();
-                          final saved = await ref
-                              .read(workoutDraftProvider.notifier)
-                              .saveCurrent();
-                          if (!context.mounted) return;
-                          if (saved != null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Treino salvo'),
-                                backgroundColor: WorkoutUi.cardElevated,
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          }
-                          if (!context.mounted) return;
-                          context.go('/treino');
-                        },
+                        onPressed: blocks.isEmpty
+                            ? null
+                            : () async {
+                                HapticFeedback.mediumImpact();
+                                final saved = await ref
+                                    .read(workoutDraftProvider.notifier)
+                                    .saveCurrent();
+                                if (!context.mounted) return;
+                                if (saved != null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Treino salvo'),
+                                      backgroundColor: WorkoutUi.cardElevated,
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                                if (!context.mounted) return;
+                                context.go('/treino');
+                              },
                         style: FilledButton.styleFrom(
                           backgroundColor: WorkoutUi.teal,
                           foregroundColor: WorkoutUi.bg,
