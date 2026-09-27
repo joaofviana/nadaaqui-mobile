@@ -12,7 +12,6 @@ const _sessionPrefsKey = 'nadaaqui.auth.session';
 const _sessionCreatedAtKey = 'nadaaqui.auth.created_at';
 
 /// Sessão em memória + SharedPreferences. Nunca loga tokens.
-/// É um ChangeNotifier para permitir que o router reaja a mudanças.
 class SessionStore extends Notifier<AuthSession?> with ChangeNotifier {
   DateTime? _createdAt;
 
@@ -42,9 +41,7 @@ class SessionStore extends Notifier<AuthSession?> with ChangeNotifier {
 
       state = session;
       notifyListeners();
-    } catch (_) {
-      // Storage ausente ou JSON inválido: permanece deslogado.
-    }
+    } catch (_) {}
   }
 
   Future<void> _persist(AuthSession? session) async {
@@ -57,7 +54,8 @@ class SessionStore extends Notifier<AuthSession?> with ChangeNotifier {
       } else {
         await prefs.setString(_sessionPrefsKey, jsonEncode(session.toJson()));
         _createdAt ??= DateTime.now();
-        await prefs.setString(_sessionCreatedAtKey, _createdAt!.toIso8601String());
+        await prefs.setString(
+            _sessionCreatedAtKey, _createdAt!.toIso8601String());
       }
     } catch (_) {}
   }
@@ -70,17 +68,30 @@ class SessionStore extends Notifier<AuthSession?> with ChangeNotifier {
 
   bool get isAuthenticated => state?.accessToken.isNotEmpty == true;
 
-  /// Verifica se o token está próximo de expirar (menos de 5 minutos)
   bool get isTokenExpiringSoon {
     if (_createdAt == null || state == null) return false;
     final elapsed = DateTime.now().difference(_createdAt!).inSeconds;
     final expiresIn = state!.expiresIn;
-    return elapsed > (expiresIn - 300); // 5 minutos de margem
+    return elapsed > (expiresIn - 300);
   }
 
   void setSession(AuthSession session) {
     state = session;
     unawaited(_persist(session));
+    notifyListeners();
+  }
+
+  void updateUser(User user) {
+    final s = state;
+    if (s == null) return;
+    final next = AuthSession(
+      accessToken: s.accessToken,
+      refreshToken: s.refreshToken,
+      expiresIn: s.expiresIn,
+      user: user,
+    );
+    state = next;
+    unawaited(_persist(next));
     notifyListeners();
   }
 
