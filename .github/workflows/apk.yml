@@ -28,20 +28,23 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-1.0.12-dive-icon.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-0.1.4-onboarding.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.12-dive-icon-${{ steps.timestamp.outputs.ts }}
-          name: NadaAqui 1.0.12 — Logo Dive
+          tag_name: v0.1.4-onboarding-${{ steps.timestamp.outputs.ts }}
+          name: NadaAqui 0.1.4 — Onboarding polido
           body: |
-            Novo ícone do app no estilo Dive (mergulhador + ondas ciano).
+            ## O que tem nesta versão
 
-            Adaptive icon (Android 8+): fundo preto, line art branca, ondas #00D4FF.
+            - **Onboarding 4 telas** (novo): tribo → evolução (card sessão) → ritmo → localização
+            - Teal brand, Ken Burns, CTA teal, copy PT-BR
+            - Perfil limpo, home carousel, treino dark, feed Clubes/Explorar/Seguindo
+            - Logo Dive + Supabase live
 
-            Home com carousel + Perto de você + FAB.
-            Supabase nearby_places ok.
+            ### Como ver o onboarding de novo
+            Desinstale o app ou limpe os dados antes de instalar este APK.
 
-            Sideload no Android.
-          files: dist/nadaaqui-1.0.12-dive-icon.apk
+            Sideload Android.
+          files: dist/nadaaqui-0.1.4-onboarding.apk
           target_commitish: main
           make_latest: true
