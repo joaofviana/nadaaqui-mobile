@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../providers/workout_draft_store.dart';
 import 'workout_theme.dart';
 
-/// Tela 2 — Configuração do treino (nome, piscina, foco).
+/// Tela 2 — Configuração do treino (nome, piscina, foco, dias).
 class WorkoutNewScreen extends ConsumerStatefulWidget {
   const WorkoutNewScreen({super.key});
 
@@ -59,11 +59,11 @@ class _WorkoutNewScreenState extends ConsumerState<WorkoutNewScreen> {
                       label: 'Avançar',
                       primary: true,
                       onTap: () {
-                        ref
-                            .read(workoutDraftProvider.notifier)
-                            .setName(_nameCtrl.text.trim().isEmpty
-                                ? 'Treino Crawl & Resistência'
-                                : _nameCtrl.text.trim());
+                        ref.read(workoutDraftProvider.notifier).setName(
+                              _nameCtrl.text.trim().isEmpty
+                                  ? 'Treino Crawl & Resistência'
+                                  : _nameCtrl.text.trim(),
+                            );
                         context.push('/treino/exercicios');
                       },
                     ),
@@ -112,7 +112,8 @@ class _WorkoutNewScreenState extends ConsumerState<WorkoutNewScreen> {
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: WorkoutUi.teal.withValues(alpha: 0.2),
+                                    color:
+                                        WorkoutUi.teal.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const Text(
@@ -173,6 +174,73 @@ class _WorkoutNewScreenState extends ConsumerState<WorkoutNewScreen> {
                                 .read(workoutDraftProvider.notifier)
                                 .setName(v),
                           ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _SettingCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Dias da semana',
+                            style: TextStyle(
+                              color: WorkoutUi.muted,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Quando você faz este treino',
+                            style: TextStyle(
+                              color: WorkoutUi.muted,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              for (final d in const [
+                                (1, 'S'),
+                                (2, 'T'),
+                                (3, 'Q'),
+                                (4, 'Q'),
+                                (5, 'S'),
+                                (6, 'S'),
+                                (7, 'D'),
+                              ])
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 2,
+                                    ),
+                                    child: _DayToggle(
+                                      label: d.$2,
+                                      selected: draft.weekDays.contains(d.$1),
+                                      onTap: () {
+                                        HapticFeedback.selectionClick();
+                                        ref
+                                            .read(
+                                              workoutDraftProvider.notifier,
+                                            )
+                                            .toggleWeekDay(d.$1);
+                                      },
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          if (draft.weekDays.isEmpty) ...[
+                            const SizedBox(height: 10),
+                            const Text(
+                              'Opcional — sem dias, o treino fica só na lista.',
+                              style: TextStyle(
+                                color: WorkoutUi.muted,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -268,6 +336,45 @@ class _WorkoutNewScreenState extends ConsumerState<WorkoutNewScreen> {
       case WorkoutFocus.misto:
         return 'Misto';
     }
+  }
+}
+
+class _DayToggle extends StatelessWidget {
+  const _DayToggle({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        height: 40,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? WorkoutUi.teal : WorkoutUi.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? WorkoutUi.teal : WorkoutUi.border,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? WorkoutUi.bg : WorkoutUi.muted,
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    );
   }
 }
 
