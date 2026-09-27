@@ -82,6 +82,7 @@ class WorkoutBlock {
   }
 }
 
+/// ISO weekday: 1 = segunda … 7 = domingo (DateTime.weekday).
 class SavedWorkout {
   const SavedWorkout({
     required this.id,
@@ -90,6 +91,7 @@ class SavedWorkout {
     required this.focus,
     required this.blocks,
     required this.createdAt,
+    this.weekDays = const [],
   });
 
   final String id;
@@ -98,6 +100,7 @@ class SavedWorkout {
   final WorkoutFocus focus;
   final List<WorkoutBlock> blocks;
   final DateTime createdAt;
+  final List<int> weekDays;
 
   int get totalMeters =>
       blocks.fold(0, (sum, b) => sum + b.totalMeters);
@@ -106,6 +109,22 @@ class SavedWorkout {
     final m = totalMeters;
     return ((m / 100) * 2).round().clamp(15, 120);
   }
+
+  /// Rótulo curto: "Seg · Qua · Sex"
+  String get weekDaysLabel {
+    if (weekDays.isEmpty) return '';
+    const names = {
+      1: 'Seg',
+      2: 'Ter',
+      3: 'Qua',
+      4: 'Qui',
+      5: 'Sex',
+      6: 'Sáb',
+      7: 'Dom',
+    };
+    final sorted = [...weekDays]..sort();
+    return sorted.map((d) => names[d] ?? '$d').join(' · ');
+  }
 }
 
 class WorkoutDraft {
@@ -113,6 +132,7 @@ class WorkoutDraft {
     this.name = 'Treino Crawl & Resistência',
     this.pool = PoolLength.m25,
     this.focus = WorkoutFocus.tecnica,
+    this.weekDays = const [],
     this.blocks = const [],
     this.saved = const [],
     this.loading = false,
@@ -122,6 +142,8 @@ class WorkoutDraft {
   final String name;
   final PoolLength pool;
   final WorkoutFocus focus;
+  /// ISO 1–7
+  final List<int> weekDays;
   final List<WorkoutBlock> blocks;
   final List<SavedWorkout> saved;
   final bool loading;
@@ -140,6 +162,7 @@ class WorkoutDraft {
     String? name,
     PoolLength? pool,
     WorkoutFocus? focus,
+    List<int>? weekDays,
     List<WorkoutBlock>? blocks,
     List<SavedWorkout>? saved,
     bool? loading,
@@ -150,6 +173,7 @@ class WorkoutDraft {
       name: name ?? this.name,
       pool: pool ?? this.pool,
       focus: focus ?? this.focus,
+      weekDays: weekDays ?? this.weekDays,
       blocks: blocks ?? this.blocks,
       saved: saved ?? this.saved,
       loading: loading ?? this.loading,
@@ -272,6 +296,24 @@ class WorkoutDraftStore extends Notifier<WorkoutDraft> {
 
   void setFocus(WorkoutFocus focus) => state = state.copyWith(focus: focus);
 
+  void toggleWeekDay(int isoDay) {
+    if (isoDay < 1 || isoDay > 7) return;
+    final next = List<int>.from(state.weekDays);
+    if (next.contains(isoDay)) {
+      next.remove(isoDay);
+    } else {
+      next.add(isoDay);
+      next.sort();
+    }
+    state = state.copyWith(weekDays: next);
+  }
+
+  void setWeekDays(List<int> days) {
+    final cleaned = days.where((d) => d >= 1 && d <= 7).toSet().toList()
+      ..sort();
+    state = state.copyWith(weekDays: cleaned);
+  }
+
   void resetDraft() {
     state = WorkoutDraft(saved: state.saved);
   }
@@ -281,6 +323,7 @@ class WorkoutDraftStore extends Notifier<WorkoutDraft> {
       name: w.name,
       pool: w.pool,
       focus: w.focus,
+      weekDays: List.of(w.weekDays),
       blocks: List.of(w.blocks),
     );
   }
@@ -316,6 +359,7 @@ class WorkoutDraftStore extends Notifier<WorkoutDraft> {
   void seedDemoBlocks() {
     state = state.copyWith(
       name: 'Treino Crawl & Resistência',
+      weekDays: const [1, 3, 5],
       blocks: const [
         WorkoutBlock(
           id: 'w1',
@@ -357,7 +401,6 @@ class WorkoutDraftStore extends Notifier<WorkoutDraft> {
     );
   }
 
-  /// Salva no Supabase (ou só em memória se mock).
   Future<SavedWorkout?> saveCurrent() async {
     if (state.blocks.isEmpty) return null;
 
@@ -367,6 +410,7 @@ class WorkoutDraftStore extends Notifier<WorkoutDraft> {
               name: state.name,
               pool: state.pool,
               focus: state.focus,
+              weekDays: state.weekDays,
               blocks: state.blocks,
             );
         state = state.copyWith(
@@ -386,6 +430,7 @@ class WorkoutDraftStore extends Notifier<WorkoutDraft> {
       name: state.name,
       pool: state.pool,
       focus: state.focus,
+      weekDays: List.of(state.weekDays),
       blocks: List.of(state.blocks),
       createdAt: DateTime.now(),
     );

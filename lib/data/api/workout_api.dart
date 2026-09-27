@@ -25,6 +25,7 @@ class WorkoutApi {
     required PoolLength pool,
     required WorkoutFocus focus,
     required List<WorkoutBlock> blocks,
+    List<int> weekDays = const [],
     String? planId,
   }) async {
     final res = await _dio.post<Map<String, dynamic>>(
@@ -33,6 +34,7 @@ class WorkoutApi {
         'p_name': name,
         'p_pool_length': pool == PoolLength.m50 ? 'm50' : 'm25',
         'p_focus': _focusWire(focus),
+        'p_week_days': weekDays.where((d) => d >= 1 && d <= 7).toList(),
         'p_blocks': blocks
             .map((b) => {
                   'phase': _phaseWire(b.phase),
@@ -109,6 +111,16 @@ class WorkoutApi {
         _ => WorkoutPhase.serie,
       };
 
+  List<int> _weekDaysParse(dynamic raw) {
+    if (raw is! List) return const [];
+    return raw
+        .map((e) => e is num ? e.toInt() : int.tryParse('$e'))
+        .whereType<int>()
+        .where((d) => d >= 1 && d <= 7)
+        .toList()
+      ..sort();
+  }
+
   SavedWorkout _fromRpc(Map<String, dynamic> e) {
     final blocksRaw = e['blocks'] as List? ?? const [];
     final blocks = blocksRaw.whereType<Map>().map((raw) {
@@ -131,6 +143,7 @@ class WorkoutApi {
           ? PoolLength.m50
           : PoolLength.m25,
       focus: _focusParse(e['focus'] as String?),
+      weekDays: _weekDaysParse(e['weekDays']),
       blocks: blocks,
       createdAt: DateTime.tryParse(e['createdAt'] as String? ?? '') ??
           DateTime.now(),
