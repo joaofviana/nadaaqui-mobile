@@ -20,6 +20,7 @@ import '../screens/places/place_detail_screen.dart';
 import '../screens/places/places_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/profile/public_profile_screen.dart';
+import '../screens/settings/settings_screen.dart';
 import '../screens/workout/workout_builder_screen.dart';
 import '../screens/workout/workout_exercises_screen.dart';
 import '../screens/workout/workout_new_screen.dart';
@@ -63,7 +64,6 @@ GoRouter createAppRouter(Ref ref) {
         return isOnboarding ? null : '/onboarding';
       }
 
-      // Documentos legais acessíveis sem login (Play / transparência)
       if (isLegal) return null;
 
       if (onboarding.done && !isAuthenticated && !isAuthRoute) {
@@ -249,7 +249,7 @@ GoRouter createAppRouter(Ref ref) {
                 routes: [
                   GoRoute(
                     path: 'config',
-                    builder: (context, state) => const ConfigScreen(),
+                    builder: (context, state) => const SettingsScreen(),
                   ),
                 ],
               ),
