@@ -28,23 +28,27 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-0.1.7-login-clubs.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-0.1.9.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.7-login-clubs-${{ steps.timestamp.outputs.ts }}
-          name: NadaAqui 0.1.7 — Login + Clubes
+          tag_name: v0.1.9-${{ steps.timestamp.outputs.ts }}
+          name: NadaAqui 0.1.9 — main completa
           body: |
-            ## Nesta versão
+            ## Nesta build (main)
 
-            - **Login moderno:** abas Entrar/Criar, mostrar senha, labels, CTA teal
-            - **Clubes:** lista, criar clube, detalhe, criar evento, RSVP
-            - Onboarding HQ (v2 force)
+            - Login moderno (abas, senha, CTA teal)
+            - Configurações (conta, privacidade, tema, local, excluir conta)
+            - Política e Termos in-app
+            - Clubes + eventos (requer SQL no Supabase)
+            - Compose sóbrio (sem botões fake)
+            - Onboarding HQ v2
+            - Perfil e treino dark
 
-            ### Clubes no backend
-            Aplique a migration no Supabase se ainda não rodou:
-            `20260927130000_clubs_events.sql`
+            ### Backend a aplicar se ainda não rodou
+            - `20260927130000_clubs_events.sql`
+            - `20260927140000_delete_account.sql`
 
-            Sideload Android. Desinstale a versão antiga se o onboarding não aparecer.
-          files: dist/nadaaqui-0.1.7-login-clubs.apk
+            Sideload Android.
+          files: dist/nadaaqui-0.1.9.apk
           target_commitish: main
           make_latest: true
