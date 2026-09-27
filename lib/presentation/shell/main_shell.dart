@@ -5,14 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../providers/active_checkin_provider.dart';
 import '../theme/app_colors.dart';
 
-/// Bottom nav 4: Mapa | Feed | Treino | Perfil (REORGANIZADO).
+/// Bottom nav 4: Mapa | Feed | Treino | Perfil.
 class MainShell extends ConsumerWidget {
   const MainShell({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
-
-  /// Contagem real chega em P2. Até lá a tab existe, sem número inventado.
-  static const String? notificationBadgeLabel = null;
 
   void _onTap(int index) {
     navigationShell.goBranch(
@@ -83,7 +80,6 @@ class _NavItem extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
-    this.badge,
   });
 
   final IconData icon;
@@ -91,49 +87,18 @@ class _NavItem extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  final String? badge;
 
   @override
   Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
     final color = selected ? t.navActive : t.navInactive;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Expanded(
       child: InkWell(
         onTap: onTap,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Icon(selected ? selectedIcon : icon, color: color, size: 24),
-                if (badge != null && badge!.isNotEmpty)
-                  Positioned(
-                    top: -6,
-                    right: -14,
-                    child: Container(
-                      constraints: const BoxConstraints(minWidth: 22),
-                      height: 16,
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.white : t.accent,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        badge!,
-                        style: TextStyle(
-                          color: isDark ? Colors.black : Colors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          height: 1,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+            Icon(selected ? selectedIcon : icon, color: color, size: 24),
             const SizedBox(height: 3),
             Text(
               label,
