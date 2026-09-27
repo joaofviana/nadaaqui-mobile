@@ -5,13 +5,13 @@ import 'package:go_router/go_router.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/session/session_store.dart';
 import '../../../data/api/auth_api.dart';
-import '../../../data/models/swimmer_points.dart';
 import '../../providers/swim_log_store.dart';
 import '../../theme/app_colors.dart';
-import '../../widgets/brand_wordmark.dart';
 import '../../widgets/guest_gate.dart';
 import '../../widgets/streak_counter.dart';
 
+/// Perfil próprio — identidade, progresso quieto, histórico real.
+/// Sem nível/emoji/conquistas rainbow (gamificação genérica).
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
@@ -33,11 +33,86 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         await api.logout(accessToken: session.accessToken);
       }
     } catch (_) {
-      // Logout local de qualquer forma mesmo se falhar no servidor
+      // Logout local mesmo se o servidor falhar
     } finally {
       ref.read(sessionStoreProvider.notifier).clear();
       if (mounted) setState(() => _loggingOut = false);
     }
+  }
+
+  void _openMenu() {
+    final t = NadaTokens.of(context);
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: t.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: t.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              ListTile(
+                leading: Icon(Icons.emoji_events_outlined, color: t.textMuted),
+                title: Text('Desafios', style: TextStyle(color: t.text)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push('/desafios');
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.tune, color: t.textMuted),
+                title: Text('Configuração', style: TextStyle(color: t.text)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push('/perfil/config');
+                },
+              ),
+              if (ref.read(sessionStoreProvider) != null)
+                ListTile(
+                  leading: Icon(Icons.logout, color: t.error),
+                  title: Text(
+                    _loggingOut ? 'Saindo…' : 'Sair',
+                    style: TextStyle(color: t.error),
+                  ),
+                  onTap: _loggingOut
+                      ? null
+                      : () {
+                          Navigator.pop(ctx);
+                          _logout();
+                        },
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatMeters(int meters) {
+    if (meters >= 1000) {
+      final km = meters / 1000;
+      return km >= 10 ? '${km.toStringAsFixed(0)} km' : '${km.toStringAsFixed(1)} km';
+    }
+    return '$meters m';
+  }
+
+  String _formatMinutes(int minutes) {
+    if (minutes < 60) return '${minutes} min';
+    final h = minutes ~/ 60;
+    final rest = minutes % 60;
+    return rest == 0 ? '${h}h' : '${h}h ${rest}min';
   }
 
   @override
@@ -48,234 +123,63 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final stats = ref.read(swimLogStoreProvider.notifier).stats();
     final week = ref.read(swimLogStoreProvider.notifier).weekHeat();
     final t = NadaTokens.of(context);
-    
-    // Calcular pontos do nadador
-    final points = SwimmerPoints.calculate(
-      sessions: stats.sessions,
-      meters: stats.meters,
-      streakDays: stats.streakDays,
-      checkIns: stats.places, // usando places como proxy de check-ins
-    );
 
     return Scaffold(
       backgroundColor: t.bg,
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          children: [
-            const BrandWordmark(height: 28),
-            const SizedBox(height: 24),
-            if (user != null) ...[
-              Text(
-                user.displayName,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.text,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(user.email, style: const TextStyle(color: AppColors.muted)),
-              const SizedBox(height: 16),
-              StreakCounter(
-                streakDays: stats.streakDays,
-                onTap: () {
-                  // TODO: Navegar para tela de detalhes de streak
-                },
-              ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: _loggingOut ? null : _logout,
-                child: _loggingOut
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Sair', style: TextStyle(color: AppColors.muted)),
-              ),
-            ] else ...[
-              const Text(
-                'Visitante',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.text,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Mapa e ficha livres. Login só para check-in e ações sociais.',
-                style: TextStyle(color: AppColors.muted, height: 1.4),
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => ensureLoggedIn(context, ref),
-                child: const Text('Entrar'),
-              ),
-            ],
-            const SizedBox(height: 20),
-            // Botão para desafios
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    t.accent.withValues(alpha: 0.15),
-                    t.accent.withValues(alpha: 0.05),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: t.accent.withValues(alpha: 0.3),
-                  width: 1,
-                ),
-              ),
-              child: InkWell(
-                onTap: () => context.push('/desafios'),
-                borderRadius: BorderRadius.circular(16),
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 12, 0),
                 child: Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: t.accent.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.emoji_events_outlined,
-                        color: t.accent,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Desafios de Natação',
-                            style: TextStyle(
-                              color: t.text,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                            ),
-                          ),
-                          Text(
-                            'Participe de desafios e ganhe pontos',
-                            style: TextStyle(
-                              color: t.textMuted,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      Icons.chevron_right,
-                      color: t.textMuted,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            // Nível e pontos (GymRats style)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    t.accent.withValues(alpha: 0.15),
-                    t.accent.withValues(alpha: 0.05),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: t.accent.withValues(alpha: 0.3),
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        points.levelEmoji,
-                        style: const TextStyle(fontSize: 32),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${points.levelLabel} · Nível ${points.level}',
-                              style: TextStyle(
-                                color: t.text,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 18,
-                              ),
-                            ),
-                            Text(
-                              '${points.totalPoints} pontos',
-                              style: TextStyle(
-                                color: t.textMuted,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
+                      child: Text(
+                        'Perfil',
+                        style: TextStyle(
+                          color: t.text,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.5,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  // Progress bar
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                      value: points.progressToNextLevel,
-                      backgroundColor: t.surface2,
-                      valueColor: AlwaysStoppedAnimation<Color>(t.accent),
-                      minHeight: 8,
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${points.nextLevelPoints - points.totalPoints} pontos para o próximo nível',
-                    style: TextStyle(
-                      color: t.textMuted,
-                      fontSize: 12,
+                    IconButton(
+                      tooltip: 'Mais',
+                      onPressed: _openMenu,
+                      icon: Icon(Icons.more_horiz, color: t.textMuted),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                _Stat(label: 'Nados', value: '${stats.sessions}'),
-                _Stat(label: 'Min', value: '${stats.minutes}'),
-                _Stat(label: 'Metros', value: '${stats.meters}'),
-                _Stat(label: 'Streak', value: '${stats.streakDays}d'),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Stats avançados estilo GymRats
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: t.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: t.border),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  if (user != null) ...[
+                    _IdentityHeader(
+                      name: user.displayName,
+                      email: user.email,
+                    ),
+                    const SizedBox(height: 20),
+                    StreakCounter(streakDays: stats.streakDays),
+                  ] else ...[
+                    _GuestBlock(
+                      onLogin: () => ensureLoggedIn(context, ref),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  _StatsRow(
+                    sessions: stats.sessions,
+                    metersLabel: _formatMeters(stats.meters),
+                    timeLabel: _formatMinutes(stats.minutes),
+                    streakDays: stats.streakDays,
+                  ),
+                  const SizedBox(height: 28),
                   Text(
-                    'Conquistas',
+                    'Esta semana',
                     style: TextStyle(
                       color: t.text,
                       fontWeight: FontWeight.w700,
@@ -283,101 +187,44 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                  _WeekHeat(week: week),
+                  const SizedBox(height: 28),
+                  Row(
                     children: [
-                      _AchievementBadge(
-                        icon: Icons.waves,
-                        label: 'Primeiro Nado',
-                        achieved: stats.sessions > 0,
-                        color: t.accent,
-                      ),
-                      _AchievementBadge(
-                        icon: Icons.local_fire_department,
-                        label: 'Streak 3 dias',
-                        achieved: stats.streakDays >= 3,
-                        color: const Color(0xFFFF6B6B),
-                      ),
-                      _AchievementBadge(
-                        icon: Icons.speed,
-                        label: '1km Total',
-                        achieved: stats.meters >= 1000,
-                        color: const Color(0xFF4ECDC4),
-                      ),
-                      _AchievementBadge(
-                        icon: Icons.emoji_events,
-                        label: '5 Locais',
-                        achieved: stats.places >= 5,
-                        color: const Color(0xFFFFD93D),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Esta semana',
-              style: TextStyle(
-                color: t.textMuted,
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: List.generate(7, (i) {
-                final n = week[i];
-                final labels = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
-                return Expanded(
-                  child: Column(
-                    children: [
-                      Container(
-                        height: 36,
-                        margin: const EdgeInsets.symmetric(horizontal: 3),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          color: n == 0
-                              ? t.surface
-                              : AppColors.accent.withValues(alpha: (0.25 + n * 0.2).clamp(0.25, 1)),
+                      Expanded(
+                        child: Text(
+                          'Histórico',
+                          style: TextStyle(
+                            color: t.text,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(labels[i], style: TextStyle(color: t.textMuted, fontSize: 11)),
+                      if (log.isNotEmpty)
+                        Text(
+                          '${log.length}',
+                          style: TextStyle(
+                            color: t.textMuted,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                     ],
                   ),
-                );
-              }),
-            ),
-            const SizedBox(height: 24),
-            const Divider(),
-            Text(
-              'Histórico',
-              style: TextStyle(
-                color: t.text,
-                fontWeight: FontWeight.w700,
-                fontSize: 16,
+                  const SizedBox(height: 12),
+                  if (log.isEmpty)
+                    _EmptyHistory()
+                  else
+                    ...log.take(30).map(
+                          (s) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _SessionCard(session: s),
+                          ),
+                        ),
+                ]),
               ),
             ),
-            const SizedBox(height: 8),
-            if (log.isEmpty)
-              Text(
-                'Faça check-in e toque em Encerrar nado para gravar a sessão.',
-                style: TextStyle(color: t.textMuted, height: 1.4),
-              )
-            else
-              ...log.map(
-                (s) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(s.placeName, style: const TextStyle(color: AppColors.text, fontWeight: FontWeight.w600)),
-                  subtitle: Text(s.statsLabel, style: const TextStyle(color: AppColors.muted)),
-                  trailing: Text(
-                    '${s.endedAt.day}/${s.endedAt.month}',
-                    style: const TextStyle(color: AppColors.muted, fontSize: 12),
-                  ),
-                ),
-              ),
           ],
         ),
       ),
@@ -385,78 +232,369 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 }
 
-class _Stat extends StatelessWidget {
-  const _Stat({required this.label, required this.value});
-  final String label;
-  final String value;
+class _IdentityHeader extends StatelessWidget {
+  const _IdentityHeader({
+    required this.name,
+    required this.email,
+  });
+
+  final String name;
+  final String email;
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: const TextStyle(
-              color: AppColors.text,
+    final t = NadaTokens.of(context);
+    final letter = name.isEmpty ? '?' : name[0].toUpperCase();
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            color: t.accent.withValues(alpha: 0.18),
+            shape: BoxShape.circle,
+            border: Border.all(color: t.accent.withValues(alpha: 0.4)),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            letter,
+            style: TextStyle(
+              color: t.accent,
+              fontSize: 26,
               fontWeight: FontWeight.w800,
-              fontSize: 20,
             ),
           ),
-          const SizedBox(height: 2),
-          Text(label, style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name,
+                style: TextStyle(
+                  color: t.text,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  height: 1.2,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                email,
+                style: TextStyle(
+                  color: t.textMuted,
+                  fontSize: 13,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GuestBlock extends StatelessWidget {
+  const _GuestBlock({required this.onLogin});
+
+  final VoidCallback onLogin;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = NadaTokens.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: t.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: t.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Visitante',
+            style: TextStyle(
+              color: t.text,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Mapa e fichas livres. Entre para registrar nados e usar o social.',
+            style: TextStyle(
+              color: t.textMuted,
+              height: 1.4,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: onLogin,
+              style: FilledButton.styleFrom(
+                backgroundColor: t.accent,
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Entrar',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _AchievementBadge extends StatelessWidget {
-  const _AchievementBadge({
-    required this.icon,
-    required this.label,
-    required this.achieved,
-    required this.color,
+class _StatsRow extends StatelessWidget {
+  const _StatsRow({
+    required this.sessions,
+    required this.metersLabel,
+    required this.timeLabel,
+    required this.streakDays,
   });
 
-  final IconData icon;
-  final String label;
-  final bool achieved;
-  final Color color;
+  final int sessions;
+  final String metersLabel;
+  final String timeLabel;
+  final int streakDays;
 
   @override
   Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
-        gradient: achieved
-            ? LinearGradient(
-                colors: [color, color.withValues(alpha: 0.7)],
-              )
-            : null,
-        color: achieved ? null : t.surface2,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: achieved ? color : t.border,
-          width: achieved ? 2 : 1,
-        ),
+        color: t.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: t.border),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            color: achieved ? Colors.black : t.textMuted,
-            size: 16,
+          _StatCell(label: 'Nados', value: '$sessions'),
+          _vDivider(t),
+          _StatCell(label: 'Distância', value: metersLabel),
+          _vDivider(t),
+          _StatCell(label: 'Tempo', value: timeLabel),
+          _vDivider(t),
+          _StatCell(label: 'Streak', value: '${streakDays}d'),
+        ],
+      ),
+    );
+  }
+
+  Widget _vDivider(NadaTokens t) {
+    return Container(
+      width: 1,
+      height: 36,
+      color: t.border,
+    );
+  }
+}
+
+class _StatCell extends StatelessWidget {
+  const _StatCell({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = NadaTokens.of(context);
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              color: t.text,
+              fontWeight: FontWeight.w800,
+              fontSize: 16,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(width: 6),
+          const SizedBox(height: 4),
           Text(
             label,
             style: TextStyle(
-              color: achieved ? Colors.black : t.textMuted,
-              fontWeight: achieved ? FontWeight.w700 : FontWeight.w500,
+              color: t.textMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WeekHeat extends StatelessWidget {
+  const _WeekHeat({required this.week});
+
+  final List<int> week;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = NadaTokens.of(context);
+    const labels = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
+
+    return Row(
+      children: List.generate(7, (i) {
+        final n = i < week.length ? week[i] : 0;
+        final intensity = n == 0
+            ? 0.0
+            : (0.3 + (n * 0.18)).clamp(0.3, 1.0);
+        return Expanded(
+          child: Column(
+            children: [
+              Container(
+                height: 40,
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: n == 0
+                      ? t.surface
+                      : t.accent.withValues(alpha: intensity),
+                  border: Border.all(
+                    color: n == 0 ? t.border : Colors.transparent,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                labels[i],
+                style: TextStyle(
+                  color: t.textMuted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class _EmptyHistory extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final t = NadaTokens.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+      decoration: BoxDecoration(
+        color: t.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: t.border),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.pool_outlined, color: t.textMuted, size: 28),
+          const SizedBox(height: 12),
+          Text(
+            'Nenhum nado registrado',
+            style: TextStyle(
+              color: t.text,
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Faça check-in e encerre a sessão para gravar aqui.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: t.textMuted,
+              fontSize: 13,
+              height: 1.35,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SessionCard extends StatelessWidget {
+  const _SessionCard({required this.session});
+
+  final SwimSession session;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = NadaTokens.of(context);
+    final d = session.endedAt;
+    final date =
+        '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: t.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: t.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: t.accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.waves, color: t.accent, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  session.placeName,
+                  style: TextStyle(
+                    color: t.text,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  session.statsLabel,
+                  style: TextStyle(
+                    color: t.textMuted,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            date,
+            style: TextStyle(
+              color: t.textMuted,
               fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
