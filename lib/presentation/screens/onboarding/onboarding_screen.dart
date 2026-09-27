@@ -8,6 +8,9 @@ import 'package:go_router/go_router.dart';
 import '../../../core/location/location_controller.dart';
 import '../../../core/onboarding/onboarding_store.dart';
 
+part 'onboarding_ui.part.dart';
+part 'onboarding_pages.part.dart';
+
 /// Onboarding de 4 passos — imersivo, marca teal, copy em PT-BR.
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -236,6 +239,3 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     }
   }
 }
-
-part 'onboarding_ui.part.dart';
-part 'onboarding_pages.part.dart';
