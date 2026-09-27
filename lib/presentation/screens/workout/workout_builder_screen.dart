@@ -16,6 +16,12 @@ class WorkoutBuilderScreen extends ConsumerWidget {
     final saved = draft.saved;
     final now = DateTime.now();
 
+    // União dos dias de todos os treinos salvos (para o strip)
+    final scheduled = <int>{};
+    for (final w in saved) {
+      scheduled.addAll(w.weekDays);
+    }
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(
         statusBarColor: Colors.transparent,
@@ -39,7 +45,10 @@ class WorkoutBuilderScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              _WeekStrip(selected: now),
+              _WeekStrip(
+                selected: now,
+                scheduledWeekdays: scheduled,
+              ),
               Expanded(
                 child: draft.loading
                     ? const Center(
@@ -153,9 +162,13 @@ class WorkoutBuilderScreen extends ConsumerWidget {
 }
 
 class _WeekStrip extends StatelessWidget {
-  const _WeekStrip({required this.selected});
+  const _WeekStrip({
+    required this.selected,
+    required this.scheduledWeekdays,
+  });
 
   final DateTime selected;
+  final Set<int> scheduledWeekdays;
 
   static const _labels = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
 
@@ -167,9 +180,12 @@ class _WeekStrip extends StatelessWidget {
       child: Row(
         children: List.generate(7, (i) {
           final day = monday.add(Duration(days: i));
+          final iso = day.weekday; // 1–7
           final isToday = day.year == selected.year &&
               day.month == selected.month &&
               day.day == selected.day;
+          final hasPlan = scheduledWeekdays.contains(iso);
+
           return Expanded(
             child: Column(
               children: [
@@ -192,7 +208,11 @@ class _WeekStrip extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: isToday
                         ? null
-                        : Border.all(color: WorkoutUi.border),
+                        : Border.all(
+                            color: hasPlan
+                                ? WorkoutUi.teal.withValues(alpha: 0.55)
+                                : WorkoutUi.border,
+                          ),
                   ),
                   child: Text(
                     '${day.day}',
@@ -203,6 +223,18 @@ class _WeekStrip extends StatelessWidget {
                     ),
                   ),
                 ),
+                const SizedBox(height: 4),
+                if (hasPlan)
+                  Container(
+                    width: 5,
+                    height: 5,
+                    decoration: const BoxDecoration(
+                      color: WorkoutUi.teal,
+                      shape: BoxShape.circle,
+                    ),
+                  )
+                else
+                  const SizedBox(height: 5),
               ],
             ),
           );
@@ -252,7 +284,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Nenhum treino salvo ainda.\nMonte séries, educativos e metas.',
+              'Nenhum treino salvo ainda.\nMonte séries e escolha os dias da semana.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: WorkoutUi.muted,
@@ -306,6 +338,8 @@ class _SavedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final days = workout.weekDaysLabel;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Material(
@@ -347,7 +381,9 @@ class _SavedCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${_fmtMeters(workout.totalMeters)} · ${workout.estimatedMinutes} min',
+                        days.isEmpty
+                            ? '${_fmtMeters(workout.totalMeters)} · ${workout.estimatedMinutes} min'
+                            : '$days · ${_fmtMeters(workout.totalMeters)}',
                         style: const TextStyle(
                           color: WorkoutUi.muted,
                           fontSize: 13,
