@@ -49,11 +49,14 @@ GoRouter createAppRouter(Ref ref) {
       final isAuthRoute = loc == '/entrar';
       final isOnboarding = loc == '/onboarding';
 
+      // Ainda carregando prefs — fica no onboarding para não flashar login.
       if (!onboarding.hydrated && !isAuthenticated) {
         return isOnboarding ? null : '/onboarding';
       }
 
-      if (!onboarding.done && !isAuthenticated) {
+      // Onboarding v2 ainda não concluído → SEMPRE mostra, mesmo se havia sessão
+      // antiga (força ver o HQ após update do APK).
+      if (!onboarding.done) {
         return isOnboarding ? null : '/onboarding';
       }
 

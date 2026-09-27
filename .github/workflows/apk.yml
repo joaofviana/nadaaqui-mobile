@@ -28,19 +28,19 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-0.1.5-onboarding-hq.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-0.1.6-onboarding-force.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.5-onboarding-hq-${{ steps.timestamp.outputs.ts }}
-          name: NadaAqui 0.1.5 — Onboarding HQ (mockup)
+          tag_name: v0.1.6-onboarding-force-${{ steps.timestamp.outputs.ts }}
+          name: NadaAqui 0.1.6 — Onboarding força (v2)
           body: |
-            Onboarding alinhado ao mockup:
-            - Logo NadaAqui no topo + Pular
-            - Foto HQ (1600px) com Ken Burns
-            - Título grande + CTA teal
-            - 4 passos: tribo → evolução → ritmo → localização
+            **Correção:** o app guardava "já vi onboarding" no celular e pulava as telas novas.
 
-            **Desinstale o app antes** para ver o onboarding de novo.
-          files: dist/nadaaqui-0.1.5-onboarding-hq.apk
+            Agora usa chave `onboarding.v2.done` — **este APK mostra o onboarding HQ na primeira abertura**, mesmo se você já tinha instalado antes.
+
+            Layout: logo topo, foto HQ, CTA teal, 4 passos.
+
+            Ainda assim: se sobrescrever sem desinstalar e o Android mantiver dados estranhos, desinstale uma vez.
+          files: dist/nadaaqui-0.1.6-onboarding-force.apk
           target_commitish: main
           make_latest: true
