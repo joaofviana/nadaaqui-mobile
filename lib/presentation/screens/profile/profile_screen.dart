@@ -32,7 +32,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         await api.logout(accessToken: session.accessToken);
       }
     } catch (_) {
-      // Logout local mesmo se o servidor falhar
     } finally {
       ref.read(sessionStoreProvider.notifier).clear();
       if (mounted) setState(() => _loggingOut = false);
@@ -62,33 +61,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ),
               ListTile(
-                leading: Icon(Icons.shield_outlined, color: t.textMuted),
+                leading: Icon(Icons.settings_outlined, color: t.textMuted),
                 title: Text(
-                  'Conta e privacidade',
-                  style: TextStyle(color: t.text),
+                  'Configurações',
+                  style: TextStyle(color: t.text, fontWeight: FontWeight.w600),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
-                  context.push('/legal/conta');
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.description_outlined, color: t.textMuted),
-                title: Text(
-                  'Política de Privacidade',
-                  style: TextStyle(color: t.text),
-                ),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  context.push('/legal/privacidade');
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.gavel_outlined, color: t.textMuted),
-                title: Text('Termos de Uso', style: TextStyle(color: t.text)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  context.push('/legal/termos');
+                  context.push('/perfil/config');
                 },
               ),
               if (ref.read(sessionStoreProvider) != null)
@@ -159,6 +139,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           letterSpacing: -0.5,
                         ),
                       ),
+                    ),
+                    IconButton(
+                      tooltip: 'Configurações',
+                      onPressed: () => context.push('/perfil/config'),
+                      icon: Icon(Icons.settings_outlined, color: t.textMuted),
                     ),
                     IconButton(
                       tooltip: 'Mais',
