@@ -13,6 +13,8 @@ import '../screens/config/config_screen.dart';
 import '../screens/feed/feed_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/leaderboard/place_leaderboard_screen.dart';
+import '../screens/legal/account_privacy_screen.dart';
+import '../screens/legal/legal_document_screen.dart';
 import '../screens/onboarding/onboarding_screen.dart';
 import '../screens/places/place_detail_screen.dart';
 import '../screens/places/places_screen.dart';
@@ -51,14 +53,18 @@ GoRouter createAppRouter(Ref ref) {
       final loc = state.matchedLocation;
       final isAuthRoute = loc == '/entrar';
       final isOnboarding = loc == '/onboarding';
+      final isLegal = loc.startsWith('/legal');
 
       if (!onboarding.hydrated && !isAuthenticated) {
+        return isOnboarding || isLegal ? null : '/onboarding';
+      }
+
+      if (!onboarding.done && !isLegal) {
         return isOnboarding ? null : '/onboarding';
       }
 
-      if (!onboarding.done) {
-        return isOnboarding ? null : '/onboarding';
-      }
+      // Documentos legais acessíveis sem login (Play / transparência)
+      if (isLegal) return null;
 
       if (onboarding.done && !isAuthenticated && !isAuthRoute) {
         return '/entrar';
@@ -83,6 +89,23 @@ GoRouter createAppRouter(Ref ref) {
           final modo = state.uri.queryParameters['modo'];
           return LoginScreen(initialSignUp: modo == 'criar');
         },
+      ),
+      GoRoute(
+        path: '/legal/privacidade',
+        parentNavigatorKey: _rootKey,
+        builder: (context, state) =>
+            const LegalDocumentScreen(doc: LegalDoc.privacy),
+      ),
+      GoRoute(
+        path: '/legal/termos',
+        parentNavigatorKey: _rootKey,
+        builder: (context, state) =>
+            const LegalDocumentScreen(doc: LegalDoc.terms),
+      ),
+      GoRoute(
+        path: '/legal/conta',
+        parentNavigatorKey: _rootKey,
+        builder: (context, state) => const AccountPrivacyScreen(),
       ),
       GoRoute(
         path: '/compose',

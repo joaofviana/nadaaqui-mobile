@@ -72,7 +72,6 @@ class AuthApi {
         );
         final data = res.data ?? const <String, dynamic>{};
         if (data['access_token'] == null) {
-          // Email confirmation ativada - conta criada mas precisa confirmar email
           throw const ApiError(
             code: ApiErrorCode.unauthorized,
             message:
@@ -95,7 +94,6 @@ class AuthApi {
     }
   }
 
-  /// GoTrue recover — sempre 200 se o payload for válido (não vaza se o e-mail existe).
   Future<void> recoverPassword({required String email}) async {
     try {
       if (_live) {
@@ -115,7 +113,6 @@ class AuthApi {
     }
   }
 
-  /// Renovar access token usando refresh token.
   Future<AuthSession> refreshSession({required String refreshToken}) async {
     try {
       if (_live) {
@@ -136,7 +133,6 @@ class AuthApi {
     }
   }
 
-  /// Logout — revoga tokens no servidor.
   Future<void> logout({required String accessToken}) async {
     try {
       if (_live) {
@@ -158,8 +154,27 @@ class AuthApi {
         ),
       );
     } on DioException {
-      // Logout local sempre; erro de rede no servidor não bloqueia.
+      // Logout local sempre
     }
+  }
+
+  /// Exclui conta no backend (RPC) e encerra sessão local.
+  Future<void> deleteAccount({required String accessToken}) async {
+    if (_live) {
+      await _dio.post(
+        '/rpc/delete_my_account',
+        data: <String, dynamic>{},
+        options: Options(
+          headers: {
+            'apikey': ApiConfig.supabaseAnonKey,
+            'Authorization': 'Bearer $accessToken',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+      return;
+    }
+    // Mock: só confirma
   }
 
   AuthSession _sessionFromGotrue(Map<String, dynamic> data) {
