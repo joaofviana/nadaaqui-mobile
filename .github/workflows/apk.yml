@@ -28,21 +28,20 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-0.1.14.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-0.1.15.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.14-${{ steps.timestamp.outputs.ts }}
-          name: NadaAqui 0.1.14 — polish Play Store
+          tag_name: v0.1.15-${{ steps.timestamp.outputs.ts }}
+          name: NadaAqui 0.1.15 — mapa real com ruas
           body: |
-            ## Polish checklist (sem feature nova)
+            ## Mapa real
 
-            - **Convidado** pode explorar após onboarding (login só quando a ação pede)
-            - Onboarding termina no **Mapa**
-            - Login: **Explorar sem conta**
-            - Copy humana (sem dashboard/seed)
-            - Badge LIVE/MOCK só em debug; rota /debug só em debug
+            - OpenStreetMap / Carto dark com **nomes de ruas**
+            - Pins das piscinas no mapa
+            - Minha localização, enquadrar, recentrar
+            - Ficha inferior + Como chegar
 
             Sideload Android.
-          files: dist/nadaaqui-0.1.14.apk
+          files: dist/nadaaqui-0.1.15.apk
           target_commitish: main
           make_latest: true
