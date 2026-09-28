@@ -8,15 +8,13 @@ import '../../../core/network/dio_client.dart';
 import '../../../core/session/session_store.dart';
 import '../../../data/api/auth_api.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/nadaaqui_mark.dart';
 
 enum _AuthMode { signIn, signUp, recover }
 
-/// Login / cadastro / recuperar senha — dark, teal, fluxo claro.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key, this.initialSignUp = false});
-
   final bool initialSignUp;
-
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
@@ -28,7 +26,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _name = TextEditingController();
   final _emailFocus = FocusNode();
   final _passFocus = FocusNode();
-
   late _AuthMode _mode;
   bool _busy = false;
   bool _obscurePass = true;
@@ -41,12 +38,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.initState();
     _mode = widget.initialSignUp ? _AuthMode.signUp : _AuthMode.signIn;
     for (final c in [_email, _password, _confirm, _name]) {
-      c.addListener(_onChanged);
+      c.addListener(() { if (mounted) setState(() {}); });
     }
-  }
-
-  void _onChanged() {
-    if (mounted) setState(() {});
   }
 
   @override
@@ -79,11 +72,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _submit() async {
     if (!_canSubmit || _busy) return;
     FocusScope.of(context).unfocus();
-    setState(() {
-      _busy = true;
-      _error = null;
-      _info = null;
-    });
+    setState(() { _busy = true; _error = null; _info = null; });
     final api = AuthApi(ref.read(dioProvider));
     try {
       if (_mode == _AuthMode.recover) {
@@ -156,7 +145,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
-
     final title = switch (_mode) {
       _AuthMode.signIn => 'Bem-vindo de volta',
       _AuthMode.signUp => 'Crie sua conta',
@@ -189,10 +177,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    t.accent.withValues(alpha: 0.12),
-                    t.bg,
-                  ],
+                  colors: [t.accent.withValues(alpha: 0.12), t.bg],
                 ),
               ),
             ),
@@ -231,39 +216,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ScrollViewKeyboardDismissBehavior.onDrag,
                     children: [
                       const SizedBox(height: 8),
-                      Center(
-                        child: Image.asset(
-                          'assets/brand/app-icon-tight.png',
-                          height: 64,
-                          width: 64,
-                          fit: BoxFit.cover,
-                          filterQuality: FilterQuality.high,
-                          errorBuilder: (_, __, ___) => Container(
-                            width: 56,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              color: t.accent.withValues(alpha: 0.2),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: t.accent.withValues(alpha: 0.5),
-                              ),
-                            ),
-                            child: Icon(Icons.waves_rounded,
-                                color: t.accent, size: 28),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Text(
-                        'NadaAqui',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: t.text,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
+                      const Center(child: NadaAquiBrand(height: 56)),
                       const SizedBox(height: 28),
                       if (_mode != _AuthMode.recover) ...[
                         _Segment(
@@ -343,8 +296,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   onSubmitted: (_) {
                                     if (_mode == _AuthMode.signIn) _submit();
                                   },
-                                  style:
-                                      TextStyle(color: t.text, fontSize: 16),
+                                  style: TextStyle(color: t.text, fontSize: 16),
                                   decoration: _fieldDeco(
                                     t,
                                     _mode == _AuthMode.signUp
@@ -373,13 +325,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 child: TextField(
                                   controller: _confirm,
                                   obscureText: _obscureConfirm,
-                                  autofillHints: const [
-                                    AutofillHints.newPassword,
-                                  ],
                                   textInputAction: TextInputAction.done,
                                   onSubmitted: (_) => _submit(),
-                                  style:
-                                      TextStyle(color: t.text, fontSize: 16),
+                                  style: TextStyle(color: t.text, fontSize: 16),
                                   decoration: _fieldDeco(
                                     t,
                                     'Repita a senha',
@@ -399,28 +347,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                 ),
                               ),
-                              if (_password.text.isNotEmpty &&
-                                  _password.text.length < 6) ...[
-                                const SizedBox(height: 8),
-                                Text(
-                                  'A senha precisa ter pelo menos 6 caracteres.',
-                                  style: TextStyle(
-                                    color: t.textMuted,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                              if (_confirm.text.isNotEmpty &&
-                                  _password.text != _confirm.text) ...[
-                                const SizedBox(height: 8),
-                                Text(
-                                  'As senhas não conferem.',
-                                  style: TextStyle(
-                                    color: t.error,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
                             ],
                           ],
                         ),
@@ -431,17 +357,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           alignment: Alignment.centerRight,
                           child: TextButton(
                             onPressed: () => _setMode(_AuthMode.recover),
-                            style: TextButton.styleFrom(
-                              foregroundColor: t.textMuted,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 8,
-                              ),
-                            ),
-                            child: const Text(
+                            child: Text(
                               'Esqueceu a senha?',
                               style: TextStyle(
-                                fontSize: 14,
+                                color: t.textMuted,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -450,11 +369,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ],
                       if (_error != null) ...[
                         const SizedBox(height: 12),
-                        _Banner(
-                          text: _error!,
-                          bg: t.errorBg,
-                          fg: t.error,
-                        ),
+                        _Banner(text: _error!, bg: t.errorBg, fg: t.error),
                       ],
                       if (_info != null) ...[
                         const SizedBox(height: 12),
@@ -474,15 +389,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             disabledBackgroundColor:
                                 t.accent.withValues(alpha: 0.35),
                             foregroundColor: const Color(0xFF042F2E),
-                            disabledForegroundColor:
-                                const Color(0xFF042F2E).withValues(alpha: 0.6),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(28),
-                            ),
-                            elevation: 0,
-                            textStyle: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
                             ),
                           ),
                           child: _busy
@@ -494,7 +402,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     color: Color(0xFF042F2E),
                                   ),
                                 )
-                              : Text(ctaLabel),
+                              : Text(
+                                  ctaLabel,
+                                  style: const TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
                         ),
                       ),
                       if (_mode == _AuthMode.recover) ...[
@@ -540,11 +454,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  InputDecoration _fieldDeco(
-    NadaTokens t,
-    String hint, {
-    Widget? suffix,
-  }) {
+  InputDecoration _fieldDeco(NadaTokens t, String hint, {Widget? suffix}) {
     final radius = BorderRadius.circular(14);
     return InputDecoration(
       hintText: hint,
@@ -576,11 +486,9 @@ class _Segment extends StatelessWidget {
     required this.onSignIn,
     required this.onSignUp,
   });
-
   final bool signIn;
   final VoidCallback onSignIn;
   final VoidCallback onSignUp;
-
   @override
   Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
@@ -594,11 +502,7 @@ class _Segment extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: _SegBtn(
-              label: 'Entrar',
-              selected: signIn,
-              onTap: onSignIn,
-            ),
+            child: _SegBtn(label: 'Entrar', selected: signIn, onTap: onSignIn),
           ),
           Expanded(
             child: _SegBtn(
@@ -619,11 +523,9 @@ class _SegBtn extends StatelessWidget {
     required this.selected,
     required this.onTap,
   });
-
   final String label;
   final bool selected;
   final VoidCallback onTap;
-
   @override
   Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
@@ -652,10 +554,8 @@ class _SegBtn extends StatelessWidget {
 
 class _LabeledField extends StatelessWidget {
   const _LabeledField({required this.label, required this.child});
-
   final String label;
   final Widget child;
-
   @override
   Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
@@ -680,16 +580,10 @@ class _LabeledField extends StatelessWidget {
 }
 
 class _Banner extends StatelessWidget {
-  const _Banner({
-    required this.text,
-    required this.bg,
-    required this.fg,
-  });
-
+  const _Banner({required this.text, required this.bg, required this.fg});
   final String text;
   final Color bg;
   final Color fg;
-
   @override
   Widget build(BuildContext context) {
     return Container(
