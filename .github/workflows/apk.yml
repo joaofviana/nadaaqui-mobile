@@ -28,25 +28,19 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-0.1.11.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-0.1.12.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.11-${{ steps.timestamp.outputs.ts }}
-          name: NadaAqui 0.1.11 — social real
+          tag_name: v0.1.12-${{ steps.timestamp.outputs.ts }}
+          name: NadaAqui 0.1.12 — onboarding HQ v3
           body: |
             ## Nesta build
 
-            - **Perfil público real** (sem Maria Nadadora mock)
-            - **Seguir / deixar de seguir**
-            - Feed **Seguindo** com posts de quem você segue
-            - Desafios sem mock ("ainda não disponível")
-            - Mapa pins + dias de treino (builds anteriores)
-
-            ### SQL no Supabase (obrigatório para social)
-            - `20260927220000_social_profile_feed.sql`
-            - (se ainda não) clubs, delete_account, workout_week_days
+            - **Onboarding v3** redesenhado (fotos 2k, tipografia, card de sessão, ritmos realistas)
+            - Chave `onboarding.v3.done` → aparece de novo após instalar
+            - Social real (perfil, follow, seguindo)
 
             Sideload Android.
-          files: dist/nadaaqui-0.1.11.apk
+          files: dist/nadaaqui-0.1.12.apk
           target_commitish: main
           make_latest: true
