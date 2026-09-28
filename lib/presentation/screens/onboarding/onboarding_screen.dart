@@ -11,7 +11,7 @@ import '../../../core/onboarding/onboarding_store.dart';
 part 'onboarding_ui.part.dart';
 part 'onboarding_pages.part.dart';
 
-/// Onboarding 4 passos — layout premium alinhado ao mockup (logo, foto HQ, CTA teal).
+/// Onboarding v3 — full-bleed HQ, tipografia forte, sessão realista.
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -28,22 +28,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
   static const _total = 4;
 
-  // Fotos Unsplash alta qualidade (1600px, q=90) — natação / água.
+  // Unsplash 2000px / q=92 — enquadramento cinematográfico de natação
   static const _imgTribe =
-      'https://images.unsplash.com/photo-1519315901367-f34ff9154487?w=1600&q=90&auto=format&fit=crop';
+      'https://images.unsplash.com/photo-1530549387789-4c1017266635?w=2000&q=92&auto=format&fit=crop';
   static const _imgEvolve =
-      'https://images.unsplash.com/photo-1530549387789-4c1017266635?w=1600&q=90&auto=format&fit=crop';
+      'https://images.unsplash.com/photo-1576610616656-d3aa5d1f4534?w=2000&q=92&auto=format&fit=crop';
   static const _imgPace =
-      'https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?w=1600&q=90&auto=format&fit=crop';
+      'https://images.unsplash.com/photo-1519315901367-f34ff9154487?w=2000&q=92&auto=format&fit=crop';
   static const _imgGps =
-      'https://images.unsplash.com/photo-1505142468610-359e7d316be0?w=1600&q=90&auto=format&fit=crop';
+      'https://images.unsplash.com/photo-1505142468610-359e7d316be0?w=2000&q=92&auto=format&fit=crop';
 
   @override
   void initState() {
     super.initState();
     _exitCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 380),
+      duration: const Duration(milliseconds: 420),
     );
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
@@ -65,7 +65,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   Future<void> _next() async {
     if (_page < _total - 1) {
       await _pageCtrl.nextPage(
-        duration: const Duration(milliseconds: 520),
+        duration: const Duration(milliseconds: 560),
         curve: Curves.easeOutCubic,
       );
       return;
@@ -101,7 +101,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
         return Opacity(
           opacity: 1 - t,
           child: Transform.scale(
-            scale: 1 - (t * 0.035),
+            scale: 1 - (t * 0.04),
             child: child,
           ),
         );
@@ -127,16 +127,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                     }
                     final delta = (page - index).clamp(-1.0, 1.0);
                     final fade = (1 - delta.abs()).clamp(0.0, 1.0);
-                    final slideX = delta * 28;
-                    final scale = 0.98 + (0.02 * fade);
-
                     return Opacity(
-                      opacity: 0.55 + (0.45 * fade),
+                      opacity: 0.6 + (0.4 * fade),
                       child: Transform.translate(
-                        offset: Offset(slideX, 0),
+                        offset: Offset(delta * 22, 0),
                         child: Transform.scale(
-                          scale: scale,
-                          alignment: Alignment.center,
+                          scale: 0.97 + (0.03 * fade),
                           child: child,
                         ),
                       ),
@@ -146,7 +142,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                 );
               },
             ),
-            // Top chrome: logo + Pular (como no mockup)
             Positioned(
               top: 0,
               left: 0,
@@ -157,7 +152,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                   opacity: _exiting ? 0 : 1,
                   duration: const Duration(milliseconds: 200),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 12, 0),
+                    padding: const EdgeInsets.fromLTRB(20, 10, 12, 0),
                     child: Row(
                       children: [
                         const _BrandMarkCompact(),
@@ -165,10 +160,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                         TextButton(
                           onPressed: _skipToLogin,
                           style: TextButton.styleFrom(
-                            foregroundColor: Colors.white70,
+                            foregroundColor: Colors.white.withValues(alpha: 0.75),
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
+                              horizontal: 14,
+                              vertical: 10,
                             ),
                           ),
                           child: const Text(
@@ -176,7 +171,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 15,
-                              letterSpacing: 0.2,
                             ),
                           ),
                         ),
@@ -198,9 +192,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
         return _HeroPage(
           key: const ValueKey('hero-0'),
           imageUrl: _imgTribe,
-          title: 'Conecte-se com\nsua tribo',
+          kicker: 'COMUNIDADE',
+          title: 'Sua tribo\nnada junto',
           subtitle:
-              'Encontre parceiros de treino e\ngrupos locais perto de você.',
+              'Encontre quem treina perto de você,\nentre em clubes e marque sessões.',
           cta: 'Continuar',
           onCta: _next,
           pageIndex: 0,
@@ -211,9 +206,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
         return _HeroPage(
           key: const ValueKey('hero-1'),
           imageUrl: _imgEvolve,
-          title: 'Acompanhe sua\nevolução',
+          kicker: 'TREINO',
+          title: 'Cada nado\nconta',
           subtitle:
-              'Registre treinos, veja métricas e\nmelhore a cada sessão na água.',
+              'Registre distância, tempo e ritmo.\nVeja sua evolução na água.',
           cta: 'Avançar',
           onCta: _next,
           pageIndex: 1,

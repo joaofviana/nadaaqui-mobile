@@ -4,11 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// v2 = onboarding HQ (mockup tribo / logo / CTA teal).
+/// v3 = onboarding redesign premium (set 2026-09-27).
 /// Trocar a chave força o fluxo a aparecer de novo após update do APK.
-const _kDone = 'nadaaqui.onboarding.v2.done';
-const _kUnit = 'nadaaqui.onboarding.distance_unit'; // meters | yards
-const _kPace = 'nadaaqui.onboarding.pace'; // 50m | 100m
+const _kDone = 'nadaaqui.onboarding.v3.done';
+const _kUnit = 'nadaaqui.onboarding.distance_unit';
+const _kPace = 'nadaaqui.onboarding.pace';
 const _kPaceSec = 'nadaaqui.onboarding.pace_seconds';
 
 enum DistanceUnit { meters, yards }
@@ -20,7 +20,7 @@ class OnboardingPrefs {
     this.done = false,
     this.unit = DistanceUnit.meters,
     this.paceBase = PaceBase.hundred,
-    this.paceSeconds = 40,
+    this.paceSeconds = 90,
     this.hydrated = false,
   });
 
@@ -47,7 +47,6 @@ class OnboardingPrefs {
   }
 }
 
-/// Preferências do onboarding + flag "já viu" (v2).
 class OnboardingStore extends Notifier<OnboardingPrefs> with ChangeNotifier {
   @override
   OnboardingPrefs build() {
@@ -58,16 +57,15 @@ class OnboardingStore extends Notifier<OnboardingPrefs> with ChangeNotifier {
   Future<void> _restore() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      // Não reutiliza a chave antiga (v1) — update sempre mostra o HQ uma vez.
       final done = prefs.getBool(_kDone) ?? false;
       final unitRaw = prefs.getString(_kUnit);
       final paceRaw = prefs.getString(_kPace);
-      final paceSec = prefs.getInt(_kPaceSec) ?? 40;
+      final paceSec = prefs.getInt(_kPaceSec) ?? 90;
       state = OnboardingPrefs(
         done: done,
         unit: unitRaw == 'yards' ? DistanceUnit.yards : DistanceUnit.meters,
         paceBase: paceRaw == '50m' ? PaceBase.fifty : PaceBase.hundred,
-        paceSeconds: paceSec.clamp(20, 120),
+        paceSeconds: paceSec.clamp(25, 180),
         hydrated: true,
       );
       notifyListeners();
@@ -96,7 +94,7 @@ class OnboardingStore extends Notifier<OnboardingPrefs> with ChangeNotifier {
   }
 
   Future<void> setPaceSeconds(int seconds) async {
-    state = state.copyWith(paceSeconds: seconds.clamp(20, 120));
+    state = state.copyWith(paceSeconds: seconds.clamp(25, 180));
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_kPaceSec, state.paceSeconds);
   }
@@ -108,7 +106,6 @@ class OnboardingStore extends Notifier<OnboardingPrefs> with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Útil em debug / suporte: limpa flag e força onboarding de novo.
   Future<void> reset() async {
     state = state.copyWith(done: false, hydrated: true);
     final prefs = await SharedPreferences.getInstance();
