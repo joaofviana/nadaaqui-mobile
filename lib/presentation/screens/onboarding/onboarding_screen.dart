@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/location/location_controller.dart';
 import '../../../core/onboarding/onboarding_store.dart';
+import '../../widgets/nadaaqui_mark.dart';
 
 part 'onboarding_ui.part.dart';
 part 'onboarding_pages.part.dart';
@@ -81,7 +82,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     await _finish();
   }
 
-  /// Entra no app como convidado; login só quando a ação pedir.
   Future<void> _finish() async {
     if (_exiting) return;
     setState(() => _exiting = true);
