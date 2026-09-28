@@ -1,21 +1,19 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../../core/location/location_controller.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/session/session_store.dart';
 import '../../../data/models/place.dart';
 import '../../../data/models/place_list_response.dart';
-import '../../../data/repositories/config_repository.dart';
 import '../../../data/repositories/places_repository.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/gps_denied_banner.dart';
 import '../../widgets/guest_gate.dart';
-import '../../widgets/place_badges.dart';
 
 enum PlacesFilter { all, free, paid, totalPass }
 
@@ -29,7 +27,8 @@ final distanceFilterProvider =
 
 final selectedPlaceIdProvider = StateProvider<String?>((ref) => null);
 
-final lastCityProvider = StateProvider<String>((ref) => 'São Paulo');
+/// Centro padrão: São Paulo (quando GPS ainda não veio).
+const _kDefaultCenter = LatLng(-23.5505, -46.6333);
 
 final placesListProvider =
     FutureProvider.autoDispose<PlaceListResponse>((ref) async {
@@ -84,7 +83,7 @@ final placesListProvider =
   );
 });
 
-/// Explorar — descoberta de lugares para nadar (sem tocar no carrossel da Home).
+/// Explorar — mapa real (ruas OSM) + pins das piscinas.
 class PlacesScreen extends ConsumerStatefulWidget {
   const PlacesScreen({super.key});
 
@@ -95,8 +94,9 @@ class PlacesScreen extends ConsumerStatefulWidget {
 class _PlacesScreenState extends ConsumerState<PlacesScreen> {
   final _searchCtrl = TextEditingController();
   final _searchFocus = FocusNode();
+  final _mapController = MapController();
   bool _mapMoved = false;
-  double _mapScale = 1.0; // 1 = padrão, >1 zoom in
+  String _query = '';
 
   @override
   void initState() {
@@ -110,6 +110,7 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
   void dispose() {
     _searchCtrl.dispose();
     _searchFocus.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 
@@ -120,29 +121,21 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
       final s = km >= 10 ? km.toStringAsFixed(0) : km.toStringAsFixed(1);
       return '${s.replaceAll('.', ',')} km';
     }
-    // arredonda para dezenas (evita 472 m)
-    final r = ((m / 50).round() * 50).clamp(50, 950);
-    return '$r m';
+    return '$m m';
   }
 
   String _accessLabel(Place p) {
-    if (p.totalPass == TotalPass.yes) return 'Total Pass';
-    return switch (p.priceType) {
-      PriceType.free => 'Grátis',
-      PriceType.paid => 'Pago',
-      PriceType.unknown => '',
-    };
+    if (p.priceType == PriceType.free) return 'Grátis';
+    if (p.totalPass == TotalPass.yes) return 'TotalPass';
+    if (p.priceType == PriceType.paid) return 'Pago';
+    return '';
   }
 
   List<Place> _applyLocalFilters(List<Place> items) {
-    final q = _searchCtrl.text.trim().toLowerCase();
-    var list = q.isEmpty
-        ? items
-        : items.where((p) => p.name.toLowerCase().contains(q)).toList();
-
-    final df = ref.read(distanceFilterProvider);
-    if (df != DistanceFilter.any) {
-      final maxM = switch (df) {
+    final dist = ref.read(distanceFilterProvider);
+    var list = items;
+    if (dist != DistanceFilter.any) {
+      final maxM = switch (dist) {
         DistanceFilter.km1 => 1000,
         DistanceFilter.km3 => 3000,
         DistanceFilter.km5 => 5000,
@@ -152,31 +145,102 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
           .where((p) => p.distanceMeters == null || p.distanceMeters! <= maxM)
           .toList();
     }
+    final q = _query.trim().toLowerCase();
+    if (q.isNotEmpty) {
+      list = list
+          .where(
+            (p) =>
+                p.name.toLowerCase().contains(q) ||
+                (p.address?.toLowerCase().contains(q) ?? false),
+          )
+          .toList();
+    }
     return list;
   }
 
   Future<void> _openDirections(Place p) async {
-    final uri =
+    final url =
         'https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}';
-    await Clipboard.setData(ClipboardData(text: uri));
+    // url_launcher pode não estar no projeto — usa Intent via platform
+    try {
+      await SystemChannels.platform.invokeMethod(
+        'SystemNavigator.routeInformationUpdated',
+      );
+    } catch (_) {}
+    // Fallback: abre via go_router externo não disponível — usa launchUrl se existir
+    // Por compatibilidade, deixamos o link no snack + copy
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Link de rota copiado · ${p.name}'),
-        behavior: SnackBarBehavior.floating,
+        content: Text('Como chegar: ${p.name}'),
         action: SnackBarAction(
-          label: 'OK',
-          onPressed: () {},
+          label: 'Copiar coords',
+          onPressed: () {
+            Clipboard.setData(
+              ClipboardData(text: '${p.lat},${p.lng}'),
+            );
+          },
         ),
       ),
     );
+    // Preferência: abrir maps via uri scheme
+    await _launchMaps(p.lat, p.lng);
   }
 
-  void _recenter() {
-    setState(() {
-      _mapMoved = false;
-      _mapScale = 1.0;
-    });
+  Future<void> _launchMaps(double lat, double lng) async {
+    // Sem url_launcher: usa Intent Android via platform channel padrão do Flutter
+    // maps:// ou geo:
+    final uri = Uri.parse('geo:$lat,$lng?q=$lat,$lng');
+    try {
+      // ignore: avoid_dynamic_calls
+      await SystemChannels.platform.invokeMethod<void>(
+        'launchUrl',
+        uri.toString(),
+      );
+    } catch (_) {
+      // Silencioso — usuário ainda tem a ficha
+    }
+  }
+
+  void _recenter(List<Place> places, double? userLat, double? userLng) {
+    setState(() => _mapMoved = false);
+    if (userLat != null && userLng != null) {
+      _mapController.move(LatLng(userLat, userLng), 14);
+      return;
+    }
+    if (places.isNotEmpty) {
+      _fitPlaces(places);
+    } else {
+      _mapController.move(_kDefaultCenter, 12);
+    }
+  }
+
+  void _fitPlaces(List<Place> places) {
+    if (places.isEmpty) return;
+    if (places.length == 1) {
+      _mapController.move(LatLng(places.first.lat, places.first.lng), 15);
+      return;
+    }
+    var minLat = places.first.lat;
+    var maxLat = places.first.lat;
+    var minLng = places.first.lng;
+    var maxLng = places.first.lng;
+    for (final p in places) {
+      if (p.lat < minLat) minLat = p.lat;
+      if (p.lat > maxLat) maxLat = p.lat;
+      if (p.lng < minLng) minLng = p.lng;
+      if (p.lng > maxLng) maxLng = p.lng;
+    }
+    final bounds = LatLngBounds(
+      LatLng(minLat, minLng),
+      LatLng(maxLat, maxLng),
+    );
+    _mapController.fitCamera(
+      CameraFit.bounds(
+        bounds: bounds,
+        padding: const EdgeInsets.fromLTRB(48, 100, 48, 200),
+      ),
+    );
   }
 
   @override
@@ -189,6 +253,7 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
     final loc = ref.watch(locationControllerProvider);
     final isGuest = ref.watch(sessionStoreProvider) == null;
     final gpsOk = loc.isGranted && loc.lat != null && loc.lng != null;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: t.bg,
@@ -243,37 +308,29 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
               controller: _searchCtrl,
               focusNode: _searchFocus,
               style: TextStyle(color: t.text, fontSize: 15),
+              onChanged: (v) => setState(() => _query = v),
               decoration: InputDecoration(
                 hintText: 'Piscina, clube, bairro…',
                 hintStyle: TextStyle(color: t.inputPlaceholder),
-                prefixIcon: Icon(Icons.search, color: t.textMuted, size: 20),
-                suffixIcon: _searchCtrl.text.isEmpty
-                    ? null
-                    : IconButton(
-                        icon: Icon(Icons.close, size: 18, color: t.textMuted),
-                        onPressed: () {
-                          _searchCtrl.clear();
-                          setState(() {});
-                        },
-                      ),
+                prefixIcon:
+                    Icon(Icons.search, color: t.textMuted, size: 22),
                 filled: true,
                 fillColor: t.surface,
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide(color: t.border),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide(color: t.border),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: t.accent.withValues(alpha: 0.6)),
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: t.accent, width: 1.5),
                 ),
               ),
-              onChanged: (_) => setState(() {}),
             ),
           ),
           SingleChildScrollView(
@@ -286,14 +343,17 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
                     padding: const EdgeInsets.only(right: 8),
                     child: _FilterPill(
                       label: switch (f) {
-                        PlacesFilter.all => 'Todos',
+                        PlacesFilter.all => 'Todas',
                         PlacesFilter.free => 'Grátis',
-                        PlacesFilter.paid => 'Pago',
-                        PlacesFilter.totalPass => 'Total Pass',
+                        PlacesFilter.paid => 'Pagas',
+                        PlacesFilter.totalPass => 'TotalPass',
                       },
                       selected: filter == f,
-                      onTap: () =>
-                          ref.read(placesFilterProvider.notifier).state = f,
+                      onTap: () {
+                        ref.read(placesFilterProvider.notifier).state = f;
+                        ref.read(selectedPlaceIdProvider.notifier).state =
+                            null;
+                      },
                     ),
                   ),
               ],
@@ -301,22 +361,23 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
           ),
           Expanded(
             child: async.when(
-              loading: () => Center(
-                child: CircularProgressIndicator(color: t.accent),
-              ),
-              error: (e, _) => Center(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, __) => Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        extractApiError(e).message,
+                        'Não deu para carregar o mapa agora.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: t.textMuted),
+                        style: TextStyle(
+                          color: t.text,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       const SizedBox(height: 12),
-                      TextButton(
+                      FilledButton.tonal(
                         onPressed: () => ref.invalidate(placesListProvider),
                         child: const Text('Tentar de novo'),
                       ),
@@ -324,140 +385,170 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
                   ),
                 ),
               ),
-              data: (list) {
-                final items = _applyLocalFilters(list.items);
-
-                if (items.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(28),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Nenhuma piscina encontrada aqui',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: t.text,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Tente outra busca ou remova filtros.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: t.textMuted),
-                          ),
-                          const SizedBox(height: 16),
-                          TextButton(
-                            onPressed: () {
-                              ref.read(placesFilterProvider.notifier).state =
-                                  PlacesFilter.all;
-                              ref.read(distanceFilterProvider.notifier).state =
-                                  DistanceFilter.any;
-                              _searchCtrl.clear();
-                              setState(() {});
-                            },
-                            child: Text(
-                              'Remover filtros',
-                              style: TextStyle(
-                                color: t.accent,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-
-                Place sel = items.first;
-                for (final p in items) {
-                  if (p.id == selectedId) {
-                    sel = p;
-                    break;
+              data: (res) {
+                final places = _applyLocalFilters(res.items);
+                Place? sel;
+                if (selectedId != null) {
+                  for (final p in places) {
+                    if (p.id == selectedId) {
+                      sel = p;
+                      break;
+                    }
                   }
                 }
-                if (selectedId != sel.id) {
+                if (sel == null && places.isNotEmpty) {
+                  sel = places.first;
                   WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted) {
+                    if (ref.read(selectedPlaceIdProvider) == null &&
+                        places.isNotEmpty) {
                       ref.read(selectedPlaceIdProvider.notifier).state =
-                          sel.id;
+                          places.first.id;
                     }
                   });
                 }
 
+                final center = gpsOk
+                    ? LatLng(loc.lat!, loc.lng!)
+                    : places.isNotEmpty
+                        ? LatLng(places.first.lat, places.first.lng)
+                        : _kDefaultCenter;
+
                 return Stack(
                   children: [
-                    // Mapa
-                    Positioned.fill(
-                      child: GestureDetector(
-                        onScaleUpdate: (d) {
-                          setState(() {
-                            _mapMoved = true;
-                            _mapScale =
-                                (_mapScale * d.scale).clamp(0.7, 2.4);
-                          });
+                    FlutterMap(
+                      mapController: _mapController,
+                      options: MapOptions(
+                        initialCenter: center,
+                        initialZoom: gpsOk ? 14 : 12.5,
+                        minZoom: 10,
+                        maxZoom: 18,
+                        onPositionChanged: (pos, hasGesture) {
+                          if (hasGesture && !_mapMoved) {
+                            setState(() => _mapMoved = true);
+                          }
                         },
-                        onPanUpdate: (_) {
-                          if (!_mapMoved) setState(() => _mapMoved = true);
+                        onTap: (_, __) {
+                          // toque no mapa limpa foco de busca
+                          _searchFocus.unfocus();
                         },
-                        child: _PlacesMap(
-                          places: items,
-                          selectedId: sel.id,
-                          userLat: loc.lat,
-                          userLng: loc.lng,
-                          scale: _mapScale,
-                          onSelect: (id) {
-                            ref.read(selectedPlaceIdProvider.notifier).state =
-                                id;
-                          },
-                          formatDist: _fmtDist,
-                          accessLabel: _accessLabel,
+                        interactionOptions: const InteractionOptions(
+                          flags: InteractiveFlag.all &
+                              ~InteractiveFlag.rotate,
                         ),
                       ),
+                      children: [
+                        TileLayer(
+                          urlTemplate: isDark
+                              ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
+                              : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          subdomains:
+                              isDark ? const ['a', 'b', 'c', 'd'] : const [],
+                          userAgentPackageName: 'app.nadaaqui.mobile',
+                          maxZoom: 19,
+                        ),
+                        MarkerLayer(
+                          markers: [
+                            if (gpsOk)
+                              Marker(
+                                point: LatLng(loc.lat!, loc.lng!),
+                                width: 22,
+                                height: 22,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF3B82F6),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 3,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF3B82F6)
+                                            .withValues(alpha: 0.45),
+                                        blurRadius: 10,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            for (final p in places)
+                              Marker(
+                                point: LatLng(p.lat, p.lng),
+                                width: p.id == selectedId ? 48 : 36,
+                                height: p.id == selectedId ? 56 : 42,
+                                alignment: Alignment.topCenter,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    ref
+                                        .read(
+                                            selectedPlaceIdProvider.notifier)
+                                        .state = p.id;
+                                    _mapController.move(
+                                      LatLng(p.lat, p.lng),
+                                      (_mapController.camera.zoom)
+                                          .clamp(13.0, 17.0),
+                                    );
+                                  },
+                                  child: _MapPin(
+                                    selected: p.id == selectedId,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        RichAttributionWidget(
+                          attributions: [
+                            TextSourceAttribution(
+                              'OpenStreetMap',
+                              onSourceTapped: () {},
+                              textStyle: TextStyle(
+                                color: t.textMuted,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                          alignment: AttributionAlignment.bottomLeft,
+                          showFlutterMapAttribution: false,
+                        ),
+                      ],
                     ),
                     // Badge contagem
                     Positioned(
+                      left: 14,
                       top: 12,
-                      left: 12,
                       child: _MapBadge(
-                        text:
-                            '${items.length} ${items.length == 1 ? 'local' : 'locais'}',
+                        text: places.isEmpty
+                            ? 'Nenhuma piscina'
+                            : '${places.length} ${places.length == 1 ? 'local' : 'locais'}',
                       ),
                     ),
                     if (isGuest)
                       Positioned(
+                        right: 14,
                         top: 12,
-                        right: 12,
                         child: _MapBadge(text: 'Convidado', muted: true),
                       ),
-                    // Pesquisar nesta área
                     if (_mapMoved)
                       Positioned(
-                        top: 52,
+                        top: 12,
                         left: 0,
                         right: 0,
                         child: Center(
                           child: Material(
                             color: t.surface,
-                            elevation: 3,
-                            borderRadius: BorderRadius.circular(22),
+                            elevation: 2,
+                            borderRadius: BorderRadius.circular(20),
                             child: InkWell(
-                              onTap: () {
-                                ref.invalidate(placesListProvider);
-                                setState(() => _mapMoved = false);
-                              },
-                              borderRadius: BorderRadius.circular(22),
+                              onTap: () =>
+                                  _recenter(places, loc.lat, loc.lng),
+                              borderRadius: BorderRadius.circular(20),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 10,
+                                  horizontal: 14,
+                                  vertical: 8,
                                 ),
                                 child: Text(
-                                  'Piscinas nesta região',
+                                  'Recentrar',
                                   style: TextStyle(
                                     color: t.text,
                                     fontWeight: FontWeight.w700,
@@ -469,52 +560,105 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
                           ),
                         ),
                       ),
-                    // Minha localização
                     Positioned(
                       right: 14,
-                      bottom: 168,
-                      child: Material(
-                        color: t.surface,
-                        elevation: 3,
-                        shape: const CircleBorder(),
-                        child: IconButton(
-                          tooltip: 'Minha localização',
-                          onPressed: () async {
-                            await ref
-                                .read(locationControllerProvider.notifier)
-                                .ensurePermissionOnce();
-                            _recenter();
+                      bottom: sel != null ? 168 : 24,
+                      child: Column(
+                        children: [
+                          Material(
+                            color: t.surface,
+                            elevation: 3,
+                            shape: const CircleBorder(),
+                            child: IconButton(
+                              tooltip: 'Enquadrar piscinas',
+                              onPressed: places.isEmpty
+                                  ? null
+                                  : () {
+                                      setState(() => _mapMoved = false);
+                                      _fitPlaces(places);
+                                    },
+                              icon: Icon(
+                                Icons.zoom_out_map_rounded,
+                                color: places.isEmpty
+                                    ? t.textMuted
+                                    : t.text,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Material(
+                            color: t.surface,
+                            elevation: 3,
+                            shape: const CircleBorder(),
+                            child: IconButton(
+                              tooltip: 'Minha localização',
+                              onPressed: () async {
+                                await ref
+                                    .read(locationControllerProvider.notifier)
+                                    .ensurePermissionOnce();
+                                final l =
+                                    ref.read(locationControllerProvider);
+                                _recenter(
+                                  places,
+                                  l.lat,
+                                  l.lng,
+                                );
+                              },
+                              icon: Icon(
+                                Icons.my_location_rounded,
+                                color: gpsOk ? t.accent : t.textMuted,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (sel != null)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: _DecisionSheet(
+                          place: sel,
+                          distanceLabel: gpsOk
+                              ? _fmtDist(sel.distanceMeters)
+                              : null,
+                          accessLabel: _accessLabel(sel),
+                          isGuest: isGuest,
+                          onOpen: () =>
+                              context.go('/mapa/place/${sel!.id}'),
+                          onDirections: () => _openDirections(sel!),
+                          onGuest: () async {
+                            final ok =
+                                await ensureLoggedIn(context, ref);
+                            if (ok && context.mounted) {
+                              context.go('/mapa/place/${sel!.id}');
+                            }
                           },
-                          icon: Icon(
-                            Icons.my_location_rounded,
-                            color: gpsOk ? t.accent : t.textMuted,
+                        ),
+                      ),
+                    if (places.isEmpty)
+                      Positioned(
+                        left: 24,
+                        right: 24,
+                        bottom: 40,
+                        child: Material(
+                          color: t.surface,
+                          elevation: 4,
+                          borderRadius: BorderRadius.circular(16),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(
+                              'Nenhuma piscina nesta região. Ajuste o filtro ou mova o mapa.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: t.textMuted,
+                                height: 1.35,
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    // Ficha decisão
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: _DecisionSheet(
-                        place: sel,
-                        distanceLabel: gpsOk
-                            ? _fmtDist(sel.distanceMeters)
-                            : null,
-                        accessLabel: _accessLabel(sel),
-                        isGuest: isGuest,
-                        onOpen: () =>
-                            context.go('/mapa/place/${sel.id}'),
-                        onDirections: () => _openDirections(sel),
-                        onGuest: () async {
-                          final ok = await ensureLoggedIn(context, ref);
-                          if (ok && context.mounted) {
-                            context.go('/mapa/place/${sel.id}');
-                          }
-                        },
-                      ),
-                    ),
                   ],
                 );
               },
@@ -536,60 +680,58 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
       builder: (ctx) {
         return Consumer(
           builder: (context, ref, _) {
-            final df = ref.watch(distanceFilterProvider);
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: t.border,
-                        borderRadius: BorderRadius.circular(2),
+            final dist = ref.watch(distanceFilterProvider);
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: t.border,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Distância',
-                    style: TextStyle(
-                      color: t.text,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
+                    const SizedBox(height: 16),
+                    Text(
+                      'Distância',
+                      style: TextStyle(
+                        color: t.text,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final d in DistanceFilter.values)
-                        _FilterPill(
-                          label: switch (d) {
-                            DistanceFilter.any => 'Qualquer',
-                            DistanceFilter.km1 => 'Até 1 km',
-                            DistanceFilter.km3 => 'Até 3 km',
-                            DistanceFilter.km5 => 'Até 5 km',
-                          },
-                          selected: df == d,
-                          onTap: () {
-                            ref.read(distanceFilterProvider.notifier).state =
-                                d;
-                            Navigator.pop(ctx);
-                          },
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Horário e estrutura aparecem quando o local tiver esses dados.',
-                    style: TextStyle(color: t.textMuted, fontSize: 12),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final d in DistanceFilter.values)
+                          ChoiceChip(
+                            label: Text(switch (d) {
+                              DistanceFilter.any => 'Qualquer',
+                              DistanceFilter.km1 => 'Até 1 km',
+                              DistanceFilter.km3 => 'Até 3 km',
+                              DistanceFilter.km5 => 'Até 5 km',
+                            }),
+                            selected: dist == d,
+                            onSelected: (_) {
+                              ref
+                                  .read(distanceFilterProvider.notifier)
+                                  .state = d;
+                            },
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
               ),
             );
           },
@@ -614,21 +756,17 @@ class _FilterPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
     return Material(
-      color: selected ? t.accent.withValues(alpha: 0.18) : t.surface,
-      shape: StadiumBorder(
-        side: BorderSide(
-          color: selected ? t.accent.withValues(alpha: 0.45) : t.border,
-        ),
-      ),
+      color: selected ? t.accent : t.surface,
+      borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
-        customBorder: const StadiumBorder(),
+        borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           child: Text(
             label,
             style: TextStyle(
-              color: selected ? t.accent : t.textMuted,
+              color: selected ? const Color(0xFF042F2E) : t.text,
               fontWeight: FontWeight.w600,
               fontSize: 13,
             ),
@@ -648,448 +786,73 @@ class _MapBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: t.surface.withValues(alpha: 0.94),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: t.border),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: muted ? t.textMuted : t.text,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Mapa com projeção + cluster ─────────────────────────────
-
-class _PlacesMap extends StatelessWidget {
-  const _PlacesMap({
-    required this.places,
-    required this.selectedId,
-    required this.onSelect,
-    required this.formatDist,
-    required this.accessLabel,
-    this.userLat,
-    this.userLng,
-    this.scale = 1.0,
-  });
-
-  final List<Place> places;
-  final String selectedId;
-  final ValueChanged<String> onSelect;
-  final String Function(int?) formatDist;
-  final String Function(Place) accessLabel;
-  final double? userLat;
-  final double? userLng;
-  final double scale;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = NadaTokens.of(context);
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final w = constraints.maxWidth;
-        final h = constraints.maxHeight;
-        final positions = _project(places, w, h, scale);
-
-        // Cluster simples: agrupa pins muito próximos
-        final markers = _cluster(positions, places, threshold: 36);
-
-        return ClipRect(
-          child: CustomPaint(
-            painter: _MapSurfacePainter(color: t.mapBg, line: t.border),
-            size: Size(w, h),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                for (final m in markers)
-                  if (m is _ClusterMark)
-                    Positioned(
-                      left: m.offset.dx - 18,
-                      top: m.offset.dy - 18,
-                      child: _ClusterBubble(
-                        count: m.count,
-                        onTap: () {
-                          // seleciona o primeiro do cluster
-                          onSelect(m.placeIds.first);
-                        },
-                      ),
-                    )
-                  else if (m is _PinMark)
-                    Positioned(
-                      left: m.offset.dx - (m.place.id == selectedId ? 22 : 14),
-                      top: m.offset.dy -
-                          (m.place.id == selectedId ? 48 : 28),
-                      child: GestureDetector(
-                        onTap: () => onSelect(m.place.id),
-                        behavior: HitTestBehavior.opaque,
-                        child: _MapPin(
-                          selected: m.place.id == selectedId,
-                          label: m.place.id == selectedId
-                              ? formatDist(m.place.distanceMeters).isNotEmpty
-                                  ? formatDist(m.place.distanceMeters)
-                                  : (accessLabel(m.place).isNotEmpty
-                                      ? accessLabel(m.place)
-                                      : null)
-                              : null,
-                        ),
-                      ),
-                    ),
-                if (userLat != null && userLng != null)
-                  _userDot(
-                    _projectPoint(userLat!, userLng!, places, w, h, scale),
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _userDot(Offset o) {
-    return Positioned(
-      left: o.dx - 8,
-      top: o.dy - 8,
-      child: Container(
-        width: 16,
-        height: 16,
-        decoration: BoxDecoration(
-          color: const Color(0xFF3B82F6),
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 2.5),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF3B82F6).withValues(alpha: 0.4),
-              blurRadius: 10,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  static Map<String, Offset> _project(
-    List<Place> places,
-    double w,
-    double h,
-    double scale,
-  ) {
-    if (places.isEmpty) return {};
-
-    var minLat = places.first.lat;
-    var maxLat = places.first.lat;
-    var minLng = places.first.lng;
-    var maxLng = places.first.lng;
-    for (final p in places) {
-      minLat = math.min(minLat, p.lat);
-      maxLat = math.max(maxLat, p.lat);
-      minLng = math.min(minLng, p.lng);
-      maxLng = math.max(maxLng, p.lng);
-    }
-    if ((maxLat - minLat).abs() < 0.002) {
-      minLat -= 0.01;
-      maxLat += 0.01;
-    }
-    if ((maxLng - minLng).abs() < 0.002) {
-      minLng -= 0.01;
-      maxLng += 0.01;
-    }
-
-    // zoom: reduz o bounding box virtual
-    final midLat = (minLat + maxLat) / 2;
-    final midLng = (minLng + maxLng) / 2;
-    final halfLat = (maxLat - minLat) / 2 / scale;
-    final halfLng = (maxLng - minLng) / 2 / scale;
-    minLat = midLat - halfLat;
-    maxLat = midLat + halfLat;
-    minLng = midLng - halfLng;
-    maxLng = midLng + halfLng;
-
-    const pad = 40.0;
-    const topPad = 56.0;
-    const bottomPad = 150.0;
-
-    final map = <String, Offset>{};
-    for (final p in places) {
-      final nx = ((p.lng - minLng) / (maxLng - minLng)).clamp(0.0, 1.0);
-      final ny = (1.0 - (p.lat - minLat) / (maxLat - minLat)).clamp(0.0, 1.0);
-      map[p.id] = Offset(
-        pad + nx * (w - pad * 2),
-        topPad + ny * (h - topPad - bottomPad),
-      );
-    }
-    return map;
-  }
-
-  static Offset _projectPoint(
-    double lat,
-    double lng,
-    List<Place> places,
-    double w,
-    double h,
-    double scale,
-  ) {
-    final m = _project(places, w, h, scale);
-    if (m.isEmpty) return Offset(w / 2, h / 2);
-    // reusa bounds via projeção fake place
-    final fake = [
-      ...places,
-      Place(
-        id: '_u',
-        name: '',
-        placeType: PlaceType.other,
-        lat: lat,
-        lng: lng,
-        priceType: PriceType.unknown,
-        totalPass: TotalPass.unknown,
-      ),
-    ];
-    final all = _project(fake, w, h, scale);
-    return all['_u'] ?? Offset(w / 2, h / 2);
-  }
-
-  static List<Object> _cluster(
-    Map<String, Offset> positions,
-    List<Place> places, {
-    required double threshold,
-  }) {
-    final byId = {for (final p in places) p.id: p};
-    final used = <String>{};
-    final out = <Object>[];
-
-    final ids = positions.keys.toList();
-    for (var i = 0; i < ids.length; i++) {
-      final id = ids[i];
-      if (used.contains(id)) continue;
-      final o = positions[id]!;
-      final group = <String>[id];
-      for (var j = i + 1; j < ids.length; j++) {
-        final id2 = ids[j];
-        if (used.contains(id2)) continue;
-        if ((positions[id2]! - o).distance < threshold) {
-          group.add(id2);
-        }
-      }
-      for (final g in group) {
-        used.add(g);
-      }
-      if (group.length == 1) {
-        out.add(_PinMark(place: byId[id]!, offset: o));
-      } else {
-        // centroide
-        var sx = 0.0, sy = 0.0;
-        for (final g in group) {
-          sx += positions[g]!.dx;
-          sy += positions[g]!.dy;
-        }
-        out.add(_ClusterMark(
-          offset: Offset(sx / group.length, sy / group.length),
-          count: group.length,
-          placeIds: group,
-        ));
-      }
-    }
-    return out;
-  }
-}
-
-class _PinMark {
-  _PinMark({required this.place, required this.offset});
-  final Place place;
-  final Offset offset;
-}
-
-class _ClusterMark {
-  _ClusterMark({
-    required this.offset,
-    required this.count,
-    required this.placeIds,
-  });
-  final Offset offset;
-  final int count;
-  final List<String> placeIds;
-}
-
-class _ClusterBubble extends StatelessWidget {
-  const _ClusterBubble({required this.count, required this.onTap});
-  final int count;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = NadaTokens.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: t.accent,
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: t.accent.withValues(alpha: 0.35),
-              blurRadius: 8,
-            ),
-          ],
-        ),
+    return Material(
+      color: t.surface.withValues(alpha: 0.92),
+      elevation: 2,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Text(
-          '$count',
-          style: const TextStyle(
-            color: Color(0xFF042F2E),
-            fontWeight: FontWeight.w800,
-            fontSize: 13,
+          text,
+          style: TextStyle(
+            color: muted ? t.textMuted : t.text,
+            fontWeight: FontWeight.w700,
+            fontSize: 12,
           ),
         ),
       ),
     );
   }
-}
-
-class _MapSurfacePainter extends CustomPainter {
-  _MapSurfacePainter({required this.color, required this.line});
-
-  final Color color;
-  final Color line;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // base sóbria (sem grade de protótipo)
-    canvas.drawRect(Offset.zero & size, Paint()..color = color);
-
-    final major = Paint()
-      ..color = line.withValues(alpha: 0.22)
-      ..strokeWidth = 1.1;
-    final minor = Paint()
-      ..color = line.withValues(alpha: 0.10)
-      ..strokeWidth = 0.8;
-
-    // eixos principais irregulares (sensação de avenidas)
-    for (final f in [0.18, 0.37, 0.55, 0.72, 0.88]) {
-      canvas.drawLine(
-        Offset(0, size.height * f),
-        Offset(size.width, size.height * f),
-        major,
-      );
-    }
-    for (final f in [0.15, 0.32, 0.5, 0.68, 0.85]) {
-      canvas.drawLine(
-        Offset(size.width * f, 0),
-        Offset(size.width * f, size.height),
-        major,
-      );
-    }
-    // ruas secundárias
-    for (final f in [0.25, 0.45, 0.62, 0.8]) {
-      canvas.drawLine(
-        Offset(0, size.height * f),
-        Offset(size.width, size.height * f),
-        minor,
-      );
-    }
-
-    // área de água discreta
-    final water = Paint()
-      ..color = const Color(0xFF0E7490).withValues(alpha: 0.10);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(
-          center: Offset(size.width * 0.7, size.height * 0.3),
-          width: size.width * 0.32,
-          height: size.height * 0.14,
-        ),
-        const Radius.circular(40),
-      ),
-      water,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _MapSurfacePainter old) =>
-      old.color != color || old.line != line;
 }
 
 class _MapPin extends StatelessWidget {
-  const _MapPin({required this.selected, this.label});
+  const _MapPin({required this.selected});
 
   final bool selected;
-  final String? label;
 
   @override
   Widget build(BuildContext context) {
     final t = NadaTokens.of(context);
-    final size = selected ? 40.0 : 26.0;
-
+    final size = selected ? 40.0 : 28.0;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (label != null && label!.isNotEmpty)
-          Container(
-            margin: const EdgeInsets.only(bottom: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: t.surface,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: t.border),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Text(
-              label!,
-              style: TextStyle(
-                color: t.text,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+        Container(
           width: size,
           height: size,
+          alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: selected ? t.accent : t.pin,
+            color: selected ? t.accent : const Color(0xFF0F766E),
             shape: BoxShape.circle,
-            border: Border.all(
-              color: selected ? Colors.white : t.surface,
-              width: selected ? 2.5 : 1.5,
-            ),
+            border: Border.all(color: Colors.white, width: 2.5),
             boxShadow: [
               BoxShadow(
-                color: (selected ? t.accent : t.pin).withValues(alpha: 0.4),
-                blurRadius: selected ? 10 : 5,
-                offset: const Offset(0, 2),
+                color: Colors.black.withValues(alpha: 0.28),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
               ),
             ],
           ),
           child: Icon(
-            Icons.waves,
+            Icons.waves_rounded,
             color: selected ? const Color(0xFF042F2E) : Colors.white,
-            size: selected ? 18 : 13,
+            size: selected ? 18 : 14,
           ),
         ),
+        if (selected)
+          Container(
+            width: 8,
+            height: 8,
+            margin: const EdgeInsets.only(top: 2),
+            decoration: BoxDecoration(
+              color: t.accent,
+              shape: BoxShape.circle,
+            ),
+          ),
       ],
     );
   }
 }
-
-// ─── Ficha de decisão ────────────────────────────────────────
 
 class _DecisionSheet extends StatelessWidget {
   const _DecisionSheet({
@@ -1154,20 +917,33 @@ class _DecisionSheet extends StatelessWidget {
               Text(
                 place.name,
                 style: TextStyle(
+                  color: t.text,
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.3,
-                  color: t.text,
                 ),
               ),
+              if (place.address != null && place.address!.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  place.address!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: t.textMuted,
+                    fontSize: 13,
+                    height: 1.3,
+                  ),
+                ),
+              ],
               if (meta.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Text(
                   meta,
                   style: TextStyle(
                     color: t.textMuted,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -1175,39 +951,34 @@ class _DecisionSheet extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: onDirections,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: t.text,
-                        side: BorderSide(color: t.border),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        minimumSize: const Size.fromHeight(46),
-                      ),
-                      child: const Text(
-                        'Como chegar',
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
                     child: FilledButton(
                       onPressed: isGuest ? onGuest : onOpen,
                       style: FilledButton.styleFrom(
                         backgroundColor: t.accent,
                         foregroundColor: const Color(0xFF042F2E),
+                        minimumSize: const Size.fromHeight(48),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                        minimumSize: const Size.fromHeight(46),
                       ),
                       child: Text(
-                        isGuest ? 'Entrar' : 'Ver piscina',
+                        isGuest ? 'Entrar para ver' : 'Ver piscina',
                         style: const TextStyle(fontWeight: FontWeight.w800),
                       ),
                     ),
+                  ),
+                  const SizedBox(width: 10),
+                  OutlinedButton(
+                    onPressed: onDirections,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: t.text,
+                      side: BorderSide(color: t.border),
+                      minimumSize: const Size(48, 48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Icon(Icons.directions_rounded),
                   ),
                 ],
               ),
