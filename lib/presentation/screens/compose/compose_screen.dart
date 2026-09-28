@@ -22,7 +22,6 @@ ComposeKind composeKindFromQuery(String? raw) {
   }
 }
 
-/// Abre login se precisar e em seguida a compose.
 Future<void> openCompose(
   BuildContext context,
   WidgetRef ref, {
@@ -49,7 +48,7 @@ Future<void> openCompose(
   );
 }
 
-/// Composer full-screen sóbrio (texto + avaliação + local).
+/// Composer full-screen estilo feed (sem borda de formulário no texto).
 class ComposeScreen extends ConsumerStatefulWidget {
   const ComposeScreen({
     super.key,
@@ -72,6 +71,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
 
   final _text = TextEditingController();
   final _placeCtrl = TextEditingController();
+  final _focus = FocusNode();
   int _stars = 0;
   bool _publishing = false;
   bool _editingPlace = false;
@@ -79,16 +79,20 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.placeName != null) {
+    if (widget.placeName != null && widget.placeName!.trim().isNotEmpty) {
       _placeCtrl.text = widget.placeName!;
     }
     _text.addListener(() => setState(() {}));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focus.requestFocus();
+    });
   }
 
   @override
   void dispose() {
     _text.dispose();
     _placeCtrl.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
@@ -98,7 +102,9 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
   }
 
   bool get _hasDraft =>
-      _text.text.trim().isNotEmpty || _stars > 0 || _placeCtrl.text.trim().isNotEmpty;
+      _text.text.trim().isNotEmpty ||
+      _stars > 0 ||
+      _placeCtrl.text.trim().isNotEmpty;
 
   bool get _canPublish {
     final body = _text.text.trim();
@@ -107,7 +113,7 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
       case ComposeKind.review:
         return _stars > 0 && body.isNotEmpty;
       case ComposeKind.checkIn:
-        return body.isNotEmpty || (_placeLabel != null);
+        return body.isNotEmpty || _placeLabel != null;
       case ComposeKind.post:
         return body.isNotEmpty;
     }
@@ -116,19 +122,19 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
   String get _title => switch (widget.kind) {
         ComposeKind.review => 'Avaliação',
         ComposeKind.checkIn => 'Check-in',
-        ComposeKind.post => 'Publicar',
+        ComposeKind.post => 'Nova publicação',
       };
 
   String get _hint => switch (widget.kind) {
         ComposeKind.review =>
-          'Faixa, água, estrutura… o que importa para quem for nadar aqui.',
-        ComposeKind.checkIn => 'Opcional: como está a piscina agora.',
-        ComposeKind.post => 'Ex.: 2 km de crawl, água boa, pouca gente.',
+          'Água, faixa, estrutura… o que importa pra quem for nadar.',
+        ComposeKind.checkIn => 'Como está a piscina agora? (opcional)',
+        ComposeKind.post => 'O que aconteceu na água?',
       };
 
   Future<void> _onClose() async {
     if (!_hasDraft) {
-      context.pop();
+      if (mounted) context.pop();
       return;
     }
     final t = NadaTokens.of(context);
@@ -237,9 +243,11 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
       },
       child: Scaffold(
         backgroundColor: t.bg,
+        resizeToAvoidBottomInset: true,
         appBar: AppBar(
           backgroundColor: t.bg,
           elevation: 0,
+          scrolledUnderElevation: 0,
           leading: IconButton(
             icon: Icon(Icons.close, color: t.text),
             onPressed: _onClose,
@@ -254,27 +262,33 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
           ),
           actions: [
             Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: TextButton(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilledButton(
                 onPressed: _canPublish && !_publishing ? _publish : null,
-                style: TextButton.styleFrom(
-                  foregroundColor: t.accent,
-                  disabledForegroundColor: t.textMuted.withValues(alpha: 0.4),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                style: FilledButton.styleFrom(
+                  backgroundColor: t.accent,
+                  disabledBackgroundColor: t.surface2,
+                  foregroundColor: const Color(0xFF042F2E),
+                  disabledForegroundColor: t.textMuted.withValues(alpha: 0.45),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  minimumSize: const Size(0, 36),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                 ),
                 child: _publishing
-                    ? SizedBox(
-                        width: 18,
-                        height: 18,
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: t.accent,
+                          color: Color(0xFF042F2E),
                         ),
                       )
                     : const Text(
                         'Publicar',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 14,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -285,173 +299,229 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
         body: Column(
           children: [
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: t.surface2,
-                        child: Text(
-                          letter,
-                          style: TextStyle(
-                            color: t.accent,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: _text,
-                          maxLines: null,
-                          minLines: 4,
-                          maxLength: _maxChars,
-                          autofocus: true,
-                          style: TextStyle(
-                            color: t.text,
-                            fontSize: 17,
-                            height: 1.45,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: _hint,
-                            hintStyle: TextStyle(
-                              color: t.textMuted,
-                              fontSize: 17,
-                              height: 1.45,
-                            ),
-                            border: InputBorder.none,
-                            counterText: '',
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (widget.kind == ComposeKind.review) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'Nota',
-                      style: TextStyle(
-                        color: t.textMuted,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: List.generate(5, (i) {
-                        final n = i + 1;
-                        final on = n <= _stars;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: IconButton(
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 40,
-                              minHeight: 40,
-                            ),
-                            onPressed: () => setState(() => _stars = n),
-                            icon: Icon(
-                              on ? Icons.star_rounded : Icons.star_outline_rounded,
-                              color: on ? _starColor : t.textMuted,
-                              size: 34,
-                            ),
-                          ),
-                        );
-                      }),
-                    ),
-                    if (_stars == 0)
-                      Text(
-                        'Escolha de 1 a 5 estrelas.',
-                        style: TextStyle(color: t.textMuted, fontSize: 13),
-                      ),
-                  ],
-                  const SizedBox(height: 16),
-                  if (_placeLabel != null && !_editingPlace)
-                    _PlaceRow(
-                      name: _placeLabel!,
-                      onClear: widget.placeId != null
-                          ? null
-                          : () {
-                              setState(() {
-                                _placeCtrl.clear();
-                                _editingPlace = false;
-                              });
-                            },
-                      onEdit: widget.placeId != null
-                          ? null
-                          : () => setState(() => _editingPlace = true),
-                    )
-                  else if (_editingPlace ||
-                      (widget.placeId == null && _placeLabel == null))
-                    _PlaceEditor(
-                      controller: _placeCtrl,
-                      onDone: () => setState(() => _editingPlace = false),
-                      onCancel: () {
-                        if (widget.placeName == null) {
-                          _placeCtrl.clear();
-                        }
-                        setState(() => _editingPlace = false);
-                      },
-                    )
-                  else
-                    TextButton.icon(
-                      onPressed: () => setState(() => _editingPlace = true),
-                      icon: Icon(Icons.place_outlined,
-                          size: 18, color: t.accent),
-                      label: Text(
-                        'Adicionar local',
-                        style: TextStyle(
-                          color: t.accent,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        alignment: Alignment.centerLeft,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            SafeArea(
-              top: false,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  border: Border(top: BorderSide(color: t.hairline)),
-                ),
-                child: Row(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (widget.kind == ComposeKind.review && _stars > 0)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CircleAvatar(
+                          radius: 22,
+                          backgroundColor: t.surface2,
+                          child: Text(
+                            letter,
+                            style: TextStyle(
+                              color: t.accent,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 17,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Theme(
+                            data: Theme.of(context).copyWith(
+                              inputDecorationTheme:
+                                  const InputDecorationTheme(
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                errorBorder: InputBorder.none,
+                                disabledBorder: InputBorder.none,
+                                focusedErrorBorder: InputBorder.none,
+                                filled: false,
+                              ),
+                            ),
+                            child: TextField(
+                              controller: _text,
+                              focusNode: _focus,
+                              maxLines: null,
+                              minLines: 5,
+                              maxLength: _maxChars,
+                              keyboardType: TextInputType.multiline,
+                              textCapitalization: TextCapitalization.sentences,
+                              style: TextStyle(
+                                color: t.text,
+                                fontSize: 18,
+                                height: 1.4,
+                              ),
+                              cursorColor: t.accent,
+                              decoration: InputDecoration(
+                                hintText: _hint,
+                                hintStyle: TextStyle(
+                                  color: t.textMuted.withValues(alpha: 0.75),
+                                  fontSize: 18,
+                                  height: 1.4,
+                                ),
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                errorBorder: InputBorder.none,
+                                disabledBorder: InputBorder.none,
+                                focusedErrorBorder: InputBorder.none,
+                                filled: false,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                                counterText: '',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (widget.kind == ComposeKind.review) ...[
+                      const SizedBox(height: 20),
                       Text(
-                        '$_stars de 5',
+                        'Nota',
                         style: TextStyle(
                           color: t.textMuted,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                    const Spacer(),
-                    Text(
-                      '$left',
-                      style: TextStyle(
-                        color: left < 0
-                            ? t.error
-                            : left < 20
-                                ? _starColor
-                                : t.textMuted,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        fontFeatures: const [FontFeature.tabularFigures()],
+                      const SizedBox(height: 6),
+                      Row(
+                        children: List.generate(5, (i) {
+                          final n = i + 1;
+                          final on = n <= _stars;
+                          return IconButton(
+                            padding: const EdgeInsets.only(right: 4),
+                            constraints: const BoxConstraints(
+                              minWidth: 40,
+                              minHeight: 40,
+                            ),
+                            onPressed: () {
+                              HapticFeedback.selectionClick();
+                              setState(() => _stars = n);
+                            },
+                            icon: Icon(
+                              on
+                                  ? Icons.star_rounded
+                                  : Icons.star_outline_rounded,
+                              color: on ? _starColor : t.textMuted,
+                              size: 36,
+                            ),
+                          );
+                        }),
                       ),
-                    ),
+                    ],
+                    const SizedBox(height: 20),
+                    if (_placeLabel != null && !_editingPlace)
+                      _PlaceChip(
+                        name: _placeLabel!,
+                        locked: widget.placeId != null,
+                        onEdit: widget.placeId != null
+                            ? null
+                            : () => setState(() => _editingPlace = true),
+                        onClear: widget.placeId != null
+                            ? null
+                            : () {
+                                setState(() {
+                                  _placeCtrl.clear();
+                                  _editingPlace = false;
+                                });
+                              },
+                      )
+                    else if (_editingPlace)
+                      _PlaceField(
+                        controller: _placeCtrl,
+                        onDone: () => setState(() => _editingPlace = false),
+                        onCancel: () {
+                          if (widget.placeName == null) {
+                            _placeCtrl.clear();
+                          } else {
+                            _placeCtrl.text = widget.placeName!;
+                          }
+                          setState(() => _editingPlace = false);
+                        },
+                      )
+                    else
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: () =>
+                              setState(() => _editingPlace = true),
+                          icon: Icon(
+                            Icons.place_outlined,
+                            size: 18,
+                            color: t.accent,
+                          ),
+                          label: Text(
+                            'Adicionar local',
+                            style: TextStyle(
+                              color: t.accent,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 8,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
+                ),
+              ),
+            ),
+            // barra inferior acima do teclado
+            Material(
+              color: t.bg,
+              child: SafeArea(
+                top: false,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                  decoration: BoxDecoration(
+                    border: Border(top: BorderSide(color: t.hairline)),
+                  ),
+                  child: Row(
+                    children: [
+                      if (widget.kind == ComposeKind.review && _stars > 0)
+                        Text(
+                          '$_stars de 5',
+                          style: TextStyle(
+                            color: t.textMuted,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      const Spacer(),
+                      SizedBox(
+                        width: 36,
+                        height: 36,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            CircularProgressIndicator(
+                              value: (used / _maxChars).clamp(0.0, 1.0),
+                              strokeWidth: 2.5,
+                              backgroundColor: t.surface2,
+                              color: left < 0
+                                  ? t.error
+                                  : left < 20
+                                      ? _starColor
+                                      : t.accent.withValues(alpha: 0.7),
+                            ),
+                            if (left <= 20)
+                              Text(
+                                '$left',
+                                style: TextStyle(
+                                  color: left < 0 ? t.error : t.textMuted,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -462,16 +532,18 @@ class _ComposeScreenState extends ConsumerState<ComposeScreen> {
   }
 }
 
-class _PlaceRow extends StatelessWidget {
-  const _PlaceRow({
+class _PlaceChip extends StatelessWidget {
+  const _PlaceChip({
     required this.name,
-    this.onClear,
+    this.locked = false,
     this.onEdit,
+    this.onClear,
   });
 
   final String name;
-  final VoidCallback? onClear;
+  final bool locked;
   final VoidCallback? onEdit;
+  final VoidCallback? onClear;
 
   @override
   Widget build(BuildContext context) {
@@ -483,7 +555,7 @@ class _PlaceRow extends StatelessWidget {
         onTap: onEdit,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
           child: Row(
             children: [
               Icon(Icons.place_outlined, size: 18, color: t.textMuted),
@@ -512,8 +584,8 @@ class _PlaceRow extends StatelessWidget {
   }
 }
 
-class _PlaceEditor extends StatelessWidget {
-  const _PlaceEditor({
+class _PlaceField extends StatelessWidget {
+  const _PlaceField({
     required this.controller,
     required this.onDone,
     required this.onCancel,
@@ -534,10 +606,11 @@ class _PlaceEditor extends StatelessWidget {
           autofocus: true,
           textCapitalization: TextCapitalization.words,
           style: TextStyle(color: t.text, fontSize: 15),
+          cursorColor: t.accent,
           decoration: InputDecoration(
             hintText: 'Nome da piscina ou clube',
             hintStyle: TextStyle(color: t.inputPlaceholder),
-            prefixIcon: Icon(Icons.place_outlined, color: t.textMuted),
+            prefixIcon: Icon(Icons.place_outlined, color: t.textMuted, size: 20),
             filled: true,
             fillColor: t.surface,
             border: OutlineInputBorder(
@@ -550,14 +623,14 @@ class _PlaceEditor extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: t.accent),
+              borderSide: BorderSide(color: t.border, width: 1.2),
             ),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           ),
           onSubmitted: (_) => onDone(),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
