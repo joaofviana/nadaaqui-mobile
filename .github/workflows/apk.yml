@@ -28,24 +28,25 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-0.1.10.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-0.1.11.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.10-${{ steps.timestamp.outputs.ts }}
-          name: NadaAqui 0.1.10 — mapa + dias de treino
+          tag_name: v0.1.11-${{ steps.timestamp.outputs.ts }}
+          name: NadaAqui 0.1.11 — social real
           body: |
             ## Nesta build
 
-            - **Mapa explorar:** pins por lat/lng (todos os locais)
-            - **Treino:** dias da semana no plano + dots no calendário
-            - Compose sóbrio, Configurações, Login, Clubes, Legal
+            - **Perfil público real** (sem Maria Nadadora mock)
+            - **Seguir / deixar de seguir**
+            - Feed **Seguindo** com posts de quem você segue
+            - Desafios sem mock ("ainda não disponível")
+            - Mapa pins + dias de treino (builds anteriores)
 
-            ### SQL no Supabase (se ainda não)
-            - `20260927130000_clubs_events.sql`
-            - `20260927140000_delete_account.sql`
-            - `20260927150000_workout_week_days.sql`
+            ### SQL no Supabase (obrigatório para social)
+            - `20260927220000_social_profile_feed.sql`
+            - (se ainda não) clubs, delete_account, workout_week_days
 
             Sideload Android.
-          files: dist/nadaaqui-0.1.10.apk
+          files: dist/nadaaqui-0.1.11.apk
           target_commitish: main
           make_latest: true
