@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -55,6 +56,10 @@ GoRouter createAppRouter(Ref ref) {
       final isAuthRoute = loc == '/entrar';
       final isOnboarding = loc == '/onboarding';
       final isLegal = loc.startsWith('/legal');
+      final isDebug = loc.startsWith('/debug');
+
+      // Config só em debug
+      if (isDebug && !kDebugMode) return '/mapa';
 
       if (!onboarding.hydrated && !isAuthenticated) {
         return isOnboarding || isLegal ? null : '/onboarding';
@@ -66,11 +71,13 @@ GoRouter createAppRouter(Ref ref) {
 
       if (isLegal) return null;
 
-      if (onboarding.done && !isAuthenticated && !isAuthRoute) {
-        return '/entrar';
+      // Convidado pode explorar o app após onboarding.
+      // Login só quando a ação pede (ensureLoggedIn).
+      if (isAuthenticated && (isAuthRoute || isOnboarding)) {
+        return '/mapa';
       }
 
-      if (isAuthenticated && (isAuthRoute || isOnboarding)) {
+      if (onboarding.done && isOnboarding) {
         return '/mapa';
       }
 
@@ -257,10 +264,11 @@ GoRouter createAppRouter(Ref ref) {
           ),
         ],
       ),
-      GoRoute(
-        path: '/debug/config',
-        builder: (context, state) => const ConfigScreen(),
-      ),
+      if (kDebugMode)
+        GoRoute(
+          path: '/debug/config',
+          builder: (context, state) => const ConfigScreen(),
+        ),
     ],
   );
 }

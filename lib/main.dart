@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,10 +10,9 @@ import 'presentation/theme/app_theme.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  debugPrint('=== NadaAqui ===');
-  debugPrint('Use Supabase: ${ApiConfig.useSupabase}');
-  debugPrint('Base URL: ${ApiConfig.baseUrl}');
-  debugPrint('================');
+  if (kDebugMode) {
+    debugPrint('NadaAqui · supabase=${ApiConfig.useSupabase}');
+  }
 
   runApp(const ProviderScope(child: NadaAquiApp()));
 }
