@@ -8,6 +8,8 @@ class UserProfile {
     required this.following,
     required this.isFollowing,
     required this.stats,
+    this.isSelf = false,
+    this.activity = const [],
   });
 
   final String id;
@@ -17,7 +19,9 @@ class UserProfile {
   final int followers;
   final int following;
   final bool isFollowing;
+  final bool isSelf;
   final UserStats stats;
+  final List<SwimSessionCalendar> activity;
 
   UserProfile copyWith({
     String? id,
@@ -27,7 +31,9 @@ class UserProfile {
     int? followers,
     int? following,
     bool? isFollowing,
+    bool? isSelf,
     UserStats? stats,
+    List<SwimSessionCalendar>? activity,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -37,7 +43,9 @@ class UserProfile {
       followers: followers ?? this.followers,
       following: following ?? this.following,
       isFollowing: isFollowing ?? this.isFollowing,
+      isSelf: isSelf ?? this.isSelf,
       stats: stats ?? this.stats,
+      activity: activity ?? this.activity,
     );
   }
 }

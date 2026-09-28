@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/dio_client.dart';
 import '../../data/models/place_leaderboard.dart';
+import '../../data/models/user_profile.dart';
 import '../../presentation/providers/feed_store.dart';
 import '../../presentation/providers/swim_log_store.dart';
 
@@ -20,6 +21,107 @@ class SocialApi {
         .whereType<Map>()
         .map((e) => _postFromRpc(Map<String, dynamic>.from(e)))
         .toList();
+  }
+
+  Future<List<FeedPost>> listFollowingFeed({int limit = 30}) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/rpc/list_following_feed',
+      data: {'p_limit': limit, 'p_offset': 0},
+    );
+    final items = res.data?['items'] as List? ?? const [];
+    return items
+        .whereType<Map>()
+        .map((e) => _postFromRpc(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  Future<UserProfile> getPublicProfile(String userId) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/rpc/get_public_profile',
+      data: {'p_user_id': userId},
+    );
+    final e = res.data ?? const {};
+    final stats = Map<String, dynamic>.from(e['stats'] as Map? ?? {});
+    final activityRaw = e['activity'] as List? ?? const [];
+    final activity = activityRaw.whereType<Map>().map((raw) {
+      final a = Map<String, dynamic>.from(raw);
+      return SwimSessionCalendar(
+        date: DateTime.tryParse(a['date'] as String? ?? '') ?? DateTime.now(),
+        minutes: (a['minutes'] as num?)?.toInt() ?? 0,
+        meters: (a['meters'] as num?)?.toInt() ?? 0,
+      );
+    }).toList();
+
+    return UserProfile(
+      id: e['id'] as String? ?? userId,
+      displayName: e['displayName'] as String? ?? 'Nadador',
+      avatarUrl: e['avatarUrl'] as String?,
+      bio: e['bio'] as String?,
+      followers: (e['followers'] as num?)?.toInt() ?? 0,
+      following: (e['following'] as num?)?.toInt() ?? 0,
+      isFollowing: e['isFollowing'] == true,
+      isSelf: e['isSelf'] == true,
+      stats: UserStats(
+        sessions: (stats['sessions'] as num?)?.toInt() ?? 0,
+        minutes: (stats['minutes'] as num?)?.toInt() ?? 0,
+        meters: (stats['meters'] as num?)?.toInt() ?? 0,
+        streakDays: (stats['streakDays'] as num?)?.toInt() ?? 0,
+        posts: (stats['posts'] as num?)?.toInt() ?? 0,
+      ),
+      activity: activity,
+    );
+  }
+
+  Future<({bool isFollowing, int followers})> toggleFollow(String userId) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/rpc/toggle_follow',
+      data: {'p_user_id': userId},
+    );
+    final d = res.data ?? const {};
+    return (
+      isFollowing: d['isFollowing'] == true,
+      followers: (d['followers'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  Future<List<FeedPost>> listUserPosts(String userId, {int limit = 20}) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/rpc/list_user_posts',
+      data: {
+        'p_user_id': userId,
+        'p_limit': limit,
+        'p_offset': 0,
+      },
+    );
+    final items = res.data?['items'] as List? ?? const [];
+    return items.whereType<Map>().map((raw) {
+      final e = Map<String, dynamic>.from(raw);
+      // posts sem author embutido — preenche depois na UI
+      final kindRaw = (e['kind'] as String?) ?? 'text';
+      final kind = switch (kindRaw) {
+        'review' => FeedPostKind.review,
+        'check_in' || 'checkIn' => FeedPostKind.checkIn,
+        'session' => FeedPostKind.session,
+        'photo' => FeedPostKind.photo,
+        _ => FeedPostKind.text,
+      };
+      return FeedPost(
+        id: e['id'] as String? ?? 'p',
+        kind: kind,
+        name: '',
+        handle: '',
+        letter: 'N',
+        colorIndex: 0,
+        createdAt:
+            DateTime.tryParse(e['createdAt'] as String? ?? '') ?? DateTime.now(),
+        text: (e['body'] as String?) ?? '',
+        placeId: e['placeId'] as String?,
+        placeName: e['placeName'] as String?,
+        stars: (e['stars'] as num?)?.toInt(),
+        likes: (e['likes'] as num?)?.toInt() ?? 0,
+        authorId: userId,
+      );
+    }).toList();
   }
 
   Future<FeedPost> createPost({
@@ -65,7 +167,8 @@ class SocialApi {
         'p_body': body,
       },
     );
-    final session = Map<String, dynamic>.from(res.data?['session'] as Map? ?? {});
+    final session =
+        Map<String, dynamic>.from(res.data?['session'] as Map? ?? {});
     final started = DateTime.parse(session['startedAt'] as String);
     final ended = DateTime.parse(session['endedAt'] as String);
     return SwimSession(
@@ -85,7 +188,8 @@ class SocialApi {
       data: {'p_limit': 50, 'p_offset': 0},
     );
     final items = res.data?['items'] as List? ?? const [];
-    final statsMap = Map<String, dynamic>.from(res.data?['stats'] as Map? ?? {});
+    final statsMap =
+        Map<String, dynamic>.from(res.data?['stats'] as Map? ?? {});
     final sessions = items.whereType<Map>().map((raw) {
       final e = Map<String, dynamic>.from(raw);
       final started = DateTime.parse(e['startedAt'] as String);
@@ -96,7 +200,8 @@ class SocialApi {
         placeName: e['placeName'] as String? ?? '',
         startedAt: started,
         endedAt: ended,
-        duration: Duration(seconds: (e['durationSeconds'] as num?)?.toInt() ?? 0),
+        duration:
+            Duration(seconds: (e['durationSeconds'] as num?)?.toInt() ?? 0),
         meters: (e['meters'] as num?)?.toInt(),
       );
     }).toList();
@@ -110,13 +215,14 @@ class SocialApi {
     return (sessions, stats);
   }
 
-  Future<PlaceLeaderboard?> getPlaceBoard(String placeId, {int limit = 10}) async {
+  Future<PlaceLeaderboard?> getPlaceBoard(String placeId,
+      {int limit = 10}) async {
     final res = await _dio.post<Map<String, dynamic>>(
       '/rpc/place_board',
       data: {'p_place_id': placeId, 'p_limit': limit},
     );
     if (res.data == null) return null;
-    
+
     final items = res.data?['items'] as List? ?? const [];
     final entries = items.whereType<Map>().map((raw) {
       final e = Map<String, dynamic>.from(raw);
@@ -128,7 +234,7 @@ class SocialApi {
         isYou: e['you'] == true,
       );
     }).toList();
-    
+
     return PlaceLeaderboard(
       placeId: placeId,
       entries: entries,
@@ -138,6 +244,7 @@ class SocialApi {
   FeedPost _postFromRpc(Map<String, dynamic> e) {
     final author = Map<String, dynamic>.from(e['author'] as Map? ?? {});
     final name = (author['displayName'] as String?) ?? 'Nadador';
+    final authorId = author['id'] as String?;
     final kindRaw = (e['kind'] as String?) ?? 'text';
     final kind = switch (kindRaw) {
       'review' => FeedPostKind.review,
@@ -153,8 +260,9 @@ class SocialApi {
       name: name,
       handle: '@${name.toLowerCase().replaceAll(RegExp(r'\s+'), '')}',
       letter: name.isEmpty ? 'N' : name[0].toUpperCase(),
-      colorIndex: 0,
-      createdAt: DateTime.tryParse(e['createdAt'] as String? ?? '') ?? DateTime.now(),
+      colorIndex: (authorId?.hashCode ?? name.hashCode).abs() % 3,
+      createdAt:
+          DateTime.tryParse(e['createdAt'] as String? ?? '') ?? DateTime.now(),
       text: (e['body'] as String?) ?? '',
       placeId: e['placeId'] as String?,
       placeName: e['placeName'] as String?,
@@ -163,6 +271,7 @@ class SocialApi {
       liked: e['liked'] == true,
       durationLabel: dur == null ? null : '${(dur / 60).ceil()} min',
       meters: (e['meters'] as num?)?.toInt(),
+      authorId: authorId,
     );
   }
 }
