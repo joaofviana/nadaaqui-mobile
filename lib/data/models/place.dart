@@ -59,8 +59,7 @@ enum PlaceType {
   }
 }
 
-/// OpenAPI `PlaceSummary` (alias de domínio: Place).
-/// Aceita camelCase (WireMock/OpenAPI) e snake_case (RPC `nearby_places`).
+/// PlaceSummary — aceita camelCase e snake_case (RPC nearby_places).
 class Place extends Equatable {
   const Place({
     required this.id,
@@ -72,6 +71,10 @@ class Place extends Equatable {
     required this.totalPass,
     this.distanceMeters,
     this.thumbnailUrl,
+    this.ratingAvg,
+    this.ratingCount,
+    this.address,
+    this.presenceCount,
   });
 
   final String id;
@@ -83,6 +86,10 @@ class Place extends Equatable {
   final TotalPass totalPass;
   final int? distanceMeters;
   final String? thumbnailUrl;
+  final double? ratingAvg;
+  final int? ratingCount;
+  final String? address;
+  final int? presenceCount;
 
   factory Place.fromJson(Map<String, dynamic> json) {
     return Place(
@@ -95,6 +102,10 @@ class Place extends Equatable {
       totalPass: TotalPass.fromWire(jsonPick(json, 'totalPass') as String?),
       distanceMeters: jsonInt(jsonPick(json, 'distanceMeters')),
       thumbnailUrl: jsonPick(json, 'thumbnailUrl') as String?,
+      ratingAvg: jsonDouble(jsonPick(json, 'ratingAvg')),
+      ratingCount: jsonInt(jsonPick(json, 'ratingCount')),
+      address: jsonPick(json, 'address') as String?,
+      presenceCount: jsonInt(jsonPick(json, 'presenceCount')),
     );
   }
 
@@ -108,6 +119,10 @@ class Place extends Equatable {
         'totalPass': totalPass.wire,
         'distanceMeters': distanceMeters,
         'thumbnailUrl': thumbnailUrl,
+        'ratingAvg': ratingAvg,
+        'ratingCount': ratingCount,
+        'address': address,
+        'presenceCount': presenceCount,
       };
 
   @override
@@ -121,5 +136,9 @@ class Place extends Equatable {
         totalPass,
         distanceMeters,
         thumbnailUrl,
+        ratingAvg,
+        ratingCount,
+        address,
+        presenceCount,
       ];
 }
