@@ -2,11 +2,11 @@ part of 'onboarding_screen.dart';
 
 abstract final class _Ob {
   static const teal = Color(0xFF2DD4BF);
-  static const tealDeep = Color(0xFF0D9488);
+  static const tealDeep = Color(0xFF0F766E);
+  static const ink = Color(0xFF042F2E);
   static const card = Color(0xFFF8FAFC);
 }
 
-/// Logo compacto no topo (mockup: ondas + NadaAqui).
 class _BrandMarkCompact extends StatelessWidget {
   const _BrandMarkCompact();
 
@@ -15,15 +15,23 @@ class _BrandMarkCompact extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.waves_rounded, color: _Ob.teal, size: 22),
-        const SizedBox(width: 8),
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: _Ob.teal.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.waves_rounded, color: _Ob.teal, size: 18),
+        ),
+        const SizedBox(width: 10),
         const Text(
           'NadaAqui',
           style: TextStyle(
             color: Colors.white,
             fontSize: 17,
             fontWeight: FontWeight.w800,
-            letterSpacing: -0.3,
+            letterSpacing: -0.35,
           ),
         ),
       ],
@@ -36,7 +44,7 @@ class _Entrance extends StatefulWidget {
     required this.child,
     required this.active,
     this.delay = Duration.zero,
-    this.slide = 24,
+    this.slide = 28,
   });
 
   final Widget child;
@@ -59,7 +67,7 @@ class _EntranceState extends State<_Entrance>
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 560),
+      duration: const Duration(milliseconds: 620),
     );
     _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic);
     _slide = Tween<Offset>(
@@ -95,10 +103,7 @@ class _EntranceState extends State<_Entrance>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _fade,
-      child: SlideTransition(
-        position: _slide,
-        child: widget.child,
-      ),
+      child: SlideTransition(position: _slide, child: widget.child),
     );
   }
 }
@@ -122,7 +127,7 @@ class _KenBurnsState extends State<_KenBurns>
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 16),
+      duration: const Duration(seconds: 18),
     );
     if (widget.active) _ctrl.repeat(reverse: true);
   }
@@ -148,15 +153,12 @@ class _KenBurnsState extends State<_KenBurns>
     return AnimatedBuilder(
       animation: _ctrl,
       builder: (context, child) {
-        final s = 1.0 + (_ctrl.value * 0.06);
-        final dx = (_ctrl.value - 0.5) * 10;
+        final s = 1.04 + (_ctrl.value * 0.05);
+        final dx = (_ctrl.value - 0.5) * 14;
+        final dy = (_ctrl.value - 0.5) * 6;
         return Transform.translate(
-          offset: Offset(dx, 0),
-          child: Transform.scale(
-            scale: s,
-            alignment: Alignment.center,
-            child: child,
-          ),
+          offset: Offset(dx, dy),
+          child: Transform.scale(scale: s, child: child),
         );
       },
       child: widget.child,
@@ -181,11 +183,12 @@ class _HeroBg extends StatelessWidget {
         height: double.infinity,
         gaplessPlayback: true,
         filterQuality: FilterQuality.high,
+        cacheWidth: 1600,
         frameBuilder: (context, child, frame, wasSync) {
           if (wasSync || frame != null) {
             return AnimatedOpacity(
               opacity: 1,
-              duration: const Duration(milliseconds: 480),
+              duration: const Duration(milliseconds: 520),
               curve: Curves.easeOut,
               child: child,
             );
@@ -209,19 +212,18 @@ class _OceanFallback extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF0B1C2C),
-            Color(0xFF0E3A4A),
-            Color(0xFF0D9488),
+            Color(0xFF061018),
+            Color(0xFF0A2A35),
+            Color(0xFF0D5C5A),
             Color(0xFF042F2E),
           ],
-          stops: [0.0, 0.35, 0.7, 1.0],
+          stops: [0.0, 0.35, 0.72, 1.0],
         ),
       ),
     );
   }
 }
 
-/// Gradiente inferior forte para legibilidade do título (como no mockup).
 class _BottomScrim extends StatelessWidget {
   const _BottomScrim({this.heavy = false});
 
@@ -236,19 +238,20 @@ class _BottomScrim extends StatelessWidget {
           end: Alignment.bottomCenter,
           colors: heavy
               ? const [
-                  Color(0x22000000),
-                  Color(0x88000000),
-                  Color(0xF2000000),
+                  Color(0x10000000),
+                  Color(0x66000000),
+                  Color(0xD9000000),
+                  Color(0xFA000000),
                 ]
               : const [
-                  Colors.transparent,
-                  Color(0x66000000),
-                  Color(0xCC000000),
-                  Color(0xF5000000),
+                  Color(0x08000000),
+                  Color(0x33000000),
+                  Color(0xAA000000),
+                  Color(0xF2000000),
                 ],
           stops: heavy
-              ? const [0.0, 0.4, 1.0]
-              : const [0.0, 0.38, 0.62, 1.0],
+              ? const [0.0, 0.28, 0.58, 1.0]
+              : const [0.0, 0.32, 0.58, 1.0],
         ),
       ),
     );
@@ -268,13 +271,13 @@ class _PageDots extends StatelessWidget {
       children: List.generate(total, (i) {
         final on = i == index;
         return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 320),
           curve: Curves.easeOutCubic,
-          margin: const EdgeInsets.symmetric(horizontal: 3),
-          width: on ? 18 : 7,
+          margin: const EdgeInsets.symmetric(horizontal: 3.5),
+          width: on ? 22 : 6,
           height: 4,
           decoration: BoxDecoration(
-            color: on ? _Ob.teal : Colors.white.withValues(alpha: 0.35),
+            color: on ? _Ob.teal : Colors.white.withValues(alpha: 0.32),
             borderRadius: BorderRadius.circular(99),
           ),
         );
@@ -308,10 +311,9 @@ class _PrimaryCtaState extends State<_PrimaryCta> {
       },
       child: AnimatedScale(
         scale: _pressed ? 0.97 : 1,
-        duration: const Duration(milliseconds: 110),
-        curve: Curves.easeOut,
+        duration: const Duration(milliseconds: 120),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 110),
+          duration: const Duration(milliseconds: 120),
           width: double.infinity,
           height: 56,
           alignment: Alignment.center,
@@ -320,19 +322,19 @@ class _PrimaryCtaState extends State<_PrimaryCta> {
             borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
-                color: _Ob.teal.withValues(alpha: _pressed ? 0.28 : 0.45),
-                blurRadius: _pressed ? 12 : 20,
-                offset: Offset(0, _pressed ? 4 : 10),
+                color: _Ob.teal.withValues(alpha: _pressed ? 0.25 : 0.42),
+                blurRadius: _pressed ? 14 : 22,
+                offset: Offset(0, _pressed ? 5 : 12),
               ),
             ],
           ),
           child: Text(
             widget.label,
             style: const TextStyle(
-              color: Color(0xFF042F2E),
+              color: _Ob.ink,
               fontSize: 17,
               fontWeight: FontWeight.w800,
-              letterSpacing: 0.15,
+              letterSpacing: 0.1,
             ),
           ),
         ),
@@ -341,11 +343,11 @@ class _PrimaryCtaState extends State<_PrimaryCta> {
   }
 }
 
-/// Página hero no padrão do mockup: foto full + título grande + CTA.
 class _HeroPage extends StatelessWidget {
   const _HeroPage({
     super.key,
     required this.imageUrl,
+    required this.kicker,
     required this.title,
     required this.subtitle,
     required this.cta,
@@ -357,6 +359,7 @@ class _HeroPage extends StatelessWidget {
   });
 
   final String imageUrl;
+  final String kicker;
   final String title;
   final String subtitle;
   final String cta;
@@ -375,60 +378,89 @@ class _HeroPage extends StatelessWidget {
       children: [
         _HeroBg(imageUrl: imageUrl, active: active),
         const _BottomScrim(),
+        // vinheta lateral suave
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                Color(0x33000000),
+                Colors.transparent,
+                Colors.transparent,
+                Color(0x22000000),
+              ],
+            ),
+          ),
+        ),
         if (overlayCard)
           Positioned(
-            top: topPad + 72,
-            left: 24,
-            right: 24,
+            top: topPad + 78,
+            left: 22,
+            right: 22,
             child: _Entrance(
               active: active,
-              delay: const Duration(milliseconds: 70),
-              slide: 36,
+              delay: const Duration(milliseconds: 60),
+              slide: 40,
               child: const _SessionMockCard(),
             ),
           ),
         SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(28, 56, 28, 28),
+            padding: const EdgeInsets.fromLTRB(28, 52, 28, 26),
             child: Column(
               children: [
                 _PageDots(index: pageIndex, total: total),
                 const Spacer(),
                 _Entrance(
                   active: active,
-                  delay: const Duration(milliseconds: 80),
+                  delay: const Duration(milliseconds: 40),
+                  child: Text(
+                    kicker,
+                    style: TextStyle(
+                      color: _Ob.teal.withValues(alpha: 0.95),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.4,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _Entrance(
+                  active: active,
+                  delay: const Duration(milliseconds: 90),
                   child: Text(
                     title,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 36,
+                      fontSize: 38,
                       fontWeight: FontWeight.w800,
-                      height: 1.1,
-                      letterSpacing: -0.8,
+                      height: 1.05,
+                      letterSpacing: -1.0,
                     ),
                   ),
                 ),
                 const SizedBox(height: 14),
                 _Entrance(
                   active: active,
-                  delay: const Duration(milliseconds: 150),
+                  delay: const Duration(milliseconds: 160),
                   child: Text(
                     subtitle,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.78),
-                      fontSize: 16,
+                      fontSize: 16.5,
                       height: 1.45,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 30),
                 _Entrance(
                   active: active,
-                  delay: const Duration(milliseconds: 230),
-                  slide: 14,
+                  delay: const Duration(milliseconds: 240),
+                  slide: 16,
                   child: _PrimaryCta(label: cta, onPressed: onCta),
                 ),
               ],
@@ -446,15 +478,15 @@ class _SessionMockCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      padding: const EdgeInsets.fromLTRB(16, 15, 16, 16),
       decoration: BoxDecoration(
         color: _Ob.card,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 28,
-            offset: const Offset(0, 14),
+            color: Colors.black.withValues(alpha: 0.45),
+            blurRadius: 32,
+            offset: const Offset(0, 16),
           ),
         ],
       ),
@@ -464,21 +496,23 @@ class _SessionMockCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 34,
-                height: 34,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                     colors: [_Ob.teal, _Ob.tealDeep],
                   ),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
                   Icons.pool_rounded,
-                  color: Color(0xFF042F2E),
-                  size: 18,
+                  color: _Ob.ink,
+                  size: 20,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -488,14 +522,16 @@ class _SessionMockCard extends StatelessWidget {
                       style: TextStyle(
                         color: Color(0xFF0F172A),
                         fontWeight: FontWeight.w800,
-                        fontSize: 14,
+                        fontSize: 15,
+                        letterSpacing: -0.2,
                       ),
                     ),
+                    SizedBox(height: 2),
                     Text(
-                      'Hoje · 07:12',
+                      'Hoje · 07:12 — 25 m',
                       style: TextStyle(
                         color: Color(0xFF64748B),
-                        fontSize: 12,
+                        fontSize: 12.5,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -503,7 +539,8 @@ class _SessionMockCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                 decoration: BoxDecoration(
                   color: const Color(0xFFD1FAE5),
                   borderRadius: BorderRadius.circular(8),
@@ -513,7 +550,7 @@ class _SessionMockCard extends StatelessWidget {
                   style: TextStyle(
                     color: Color(0xFF047857),
                     fontSize: 11,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
@@ -521,9 +558,9 @@ class _SessionMockCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           ClipRRect(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
             child: SizedBox(
-              height: 72,
+              height: 78,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -544,13 +581,13 @@ class _SessionMockCard extends StatelessWidget {
                   const Align(
                     alignment: Alignment.bottomLeft,
                     child: Padding(
-                      padding: EdgeInsets.all(10),
+                      padding: EdgeInsets.all(11),
                       child: Text(
                         'Série principal · Crawl',
                         style: TextStyle(
                           color: Color(0xFF0F766E),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
@@ -564,7 +601,7 @@ class _SessionMockCard extends StatelessWidget {
             children: [
               Expanded(child: _Metric(value: '2.400 m', label: 'Distância')),
               Expanded(child: _Metric(value: '48 min', label: 'Duração')),
-              Expanded(child: _Metric(value: '1:55 /100', label: 'Ritmo')),
+              Expanded(child: _Metric(value: '1:55/100', label: 'Ritmo')),
             ],
           ),
         ],
@@ -588,16 +625,16 @@ class _Metric extends StatelessWidget {
           style: const TextStyle(
             color: Color(0xFF0F172A),
             fontWeight: FontWeight.w800,
-            fontSize: 15,
-            letterSpacing: -0.2,
+            fontSize: 15.5,
+            letterSpacing: -0.3,
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 3),
         Text(
           label,
           style: const TextStyle(
             color: Color(0xFF64748B),
-            fontSize: 11,
+            fontSize: 11.5,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -610,16 +647,17 @@ class _WaveSparkPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF14B8A6).withValues(alpha: 0.4)
+      ..color = const Color(0xFF14B8A6).withValues(alpha: 0.45)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.4
+      ..strokeWidth = 2.5
       ..strokeCap = StrokeCap.round;
 
     final path = Path();
-    final mid = size.height * 0.52;
-    for (var x = 0.0; x <= size.width; x += 4) {
+    final mid = size.height * 0.5;
+    for (var x = 0.0; x <= size.width; x += 3) {
       final t = x / size.width;
-      final wave = mid + 11 * math.sin(t * math.pi * 2.2) * (0.55 + 0.45 * t);
+      final wave =
+          mid + 12 * math.sin(t * math.pi * 2.4) * (0.5 + 0.5 * t);
       if (x == 0) {
         path.moveTo(x, wave);
       } else {
@@ -633,7 +671,7 @@ class _WaveSparkPainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          const Color(0xFF2DD4BF).withValues(alpha: 0.2),
+          const Color(0xFF2DD4BF).withValues(alpha: 0.22),
           const Color(0xFF2DD4BF).withValues(alpha: 0.0),
         ],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));

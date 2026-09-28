@@ -1,6 +1,5 @@
 part of 'onboarding_screen.dart';
 
-
 class _PacePage extends StatefulWidget {
   const _PacePage({
     super.key,
@@ -34,7 +33,8 @@ class _PacePage extends StatefulWidget {
 }
 
 class _PacePageState extends State<_PacePage> {
-  static final _options = List.generate(21, (i) => 25 + i * 5);
+  // Ritmos realistas de natação: 0:40 a 2:40 / 100m
+  static final _options = List.generate(25, (i) => 40 + i * 5);
   late final FixedExtentScrollController _wheel;
 
   @override
@@ -69,44 +69,44 @@ class _PacePageState extends State<_PacePage> {
         const _BottomScrim(heavy: true),
         SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 10, 24, 28),
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 26),
             child: Column(
               children: [
                 _PageDots(index: widget.pageIndex, total: widget.total),
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
                 _Entrance(
                   active: widget.active,
                   delay: const Duration(milliseconds: 40),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Qual é o seu ritmo médio?',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        height: 1.25,
-                        letterSpacing: -0.3,
-                      ),
+                  child: const Text(
+                    'RITMO',
+                    style: TextStyle(
+                      color: _Ob.teal,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.4,
                     ),
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 8),
                 _Entrance(
                   active: widget.active,
-                  delay: const Duration(milliseconds: 90),
+                  delay: const Duration(milliseconds: 80),
+                  child: const Text(
+                    'Qual é o seu ritmo\nmédio?',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w800,
+                      height: 1.12,
+                      letterSpacing: -0.6,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _Entrance(
+                  active: widget.active,
+                  delay: const Duration(milliseconds: 120),
                   child: _Segment(
                     left: 'Metros',
                     right: 'Jardas',
@@ -118,14 +118,14 @@ class _PacePageState extends State<_PacePage> {
                 const Spacer(),
                 _Entrance(
                   active: widget.active,
-                  delay: const Duration(milliseconds: 120),
+                  delay: const Duration(milliseconds: 140),
                   child: SizedBox(
-                    height: 140,
+                    height: 148,
                     child: ListWheelScrollView.useDelegate(
                       controller: _wheel,
-                      itemExtent: 44,
-                      perspective: 0.003,
-                      diameterRatio: 1.4,
+                      itemExtent: 46,
+                      perspective: 0.0028,
+                      diameterRatio: 1.35,
                       physics: const FixedExtentScrollPhysics(),
                       onSelectedItemChanged: (i) {
                         HapticFeedback.selectionClick();
@@ -142,12 +142,12 @@ class _PacePageState extends State<_PacePage> {
                               style: TextStyle(
                                 color: selected
                                     ? Colors.white
-                                    : Colors.white.withValues(alpha: 0.4),
-                                fontSize: selected ? 32 : 18,
+                                    : Colors.white.withValues(alpha: 0.38),
+                                fontSize: selected ? 34 : 18,
                                 fontWeight: selected
                                     ? FontWeight.w800
                                     : FontWeight.w500,
-                                letterSpacing: selected ? -0.5 : 0,
+                                letterSpacing: selected ? -0.6 : 0,
                               ),
                               child: Text(_fmt(sec)),
                             ),
@@ -157,23 +157,23 @@ class _PacePageState extends State<_PacePage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 _Entrance(
                   active: widget.active,
-                  delay: const Duration(milliseconds: 160),
+                  delay: const Duration(milliseconds: 180),
                   child: Text(
                     'min / $baseLabel',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.65),
+                      color: Colors.white.withValues(alpha: 0.62),
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
                 _Entrance(
                   active: widget.active,
-                  delay: const Duration(milliseconds: 200),
+                  delay: const Duration(milliseconds: 210),
                   child: _Segment(
                     left: '50 m',
                     right: '100 m',
@@ -182,7 +182,7 @@ class _PacePageState extends State<_PacePage> {
                     onRight: () => widget.onPaceBase(PaceBase.hundred),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 26),
                 _Entrance(
                   active: widget.active,
                   delay: const Duration(milliseconds: 260),
@@ -257,7 +257,7 @@ class _Chip extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
         decoration: BoxDecoration(
           color: selected ? _Ob.teal : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
@@ -265,7 +265,7 @@ class _Chip extends StatelessWidget {
               ? [
                   BoxShadow(
                     color: _Ob.teal.withValues(alpha: 0.35),
-                    blurRadius: 10,
+                    blurRadius: 12,
                   ),
                 ]
               : null,
@@ -273,7 +273,7 @@ class _Chip extends StatelessWidget {
         child: AnimatedDefaultTextStyle(
           duration: const Duration(milliseconds: 200),
           style: TextStyle(
-            color: selected ? const Color(0xFF042F2E) : Colors.white,
+            color: selected ? _Ob.ink : Colors.white,
             fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
             fontSize: 14,
           ),
@@ -283,8 +283,6 @@ class _Chip extends StatelessWidget {
     );
   }
 }
-
-// ─── Página de localização ───────────────────────────────────
 
 class _LocationPage extends StatelessWidget {
   const _LocationPage({
@@ -313,34 +311,34 @@ class _LocationPage extends StatelessWidget {
         const _BottomScrim(heavy: true),
         SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 10, 24, 28),
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
             child: Column(
               children: [
                 _PageDots(index: pageIndex, total: total),
                 const Spacer(),
                 _Entrance(
                   active: active,
-                  delay: const Duration(milliseconds: 60),
-                  slide: 20,
+                  delay: const Duration(milliseconds: 50),
+                  slide: 22,
                   child: Container(
-                    width: 72,
-                    height: 72,
+                    width: 76,
+                    height: 76,
                     decoration: BoxDecoration(
-                      color: _Ob.teal.withValues(alpha: 0.18),
+                      color: _Ob.teal.withValues(alpha: 0.16),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: _Ob.teal.withValues(alpha: 0.55),
+                        color: _Ob.teal.withValues(alpha: 0.5),
                         width: 1.5,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: _Ob.teal.withValues(alpha: 0.25),
-                          blurRadius: 24,
+                          color: _Ob.teal.withValues(alpha: 0.22),
+                          blurRadius: 28,
                         ),
                       ],
                     ),
                     child: const Icon(
-                      Icons.location_on_rounded,
+                      Icons.near_me_rounded,
                       color: _Ob.teal,
                       size: 34,
                     ),
@@ -349,59 +347,62 @@ class _LocationPage extends StatelessWidget {
                 const SizedBox(height: 22),
                 _Entrance(
                   active: active,
-                  delay: const Duration(milliseconds: 110),
-                  slide: 28,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.55),
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.12),
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        const Text(
-                          'Encontre locais de\nnado perto de você',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            height: 1.18,
-                            letterSpacing: -0.4,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Usamos sua localização só para mostrar\npiscinas, praias e nadadores próximos.\nVocê pode mudar isso a qualquer momento.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.72),
-                            fontSize: 15,
-                            height: 1.45,
-                          ),
-                        ),
-                      ],
+                  delay: const Duration(milliseconds: 100),
+                  child: const Text(
+                    'LOCAL',
+                    style: TextStyle(
+                      color: _Ob.teal,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.4,
                     ),
                   ),
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: 8),
                 _Entrance(
                   active: active,
-                  delay: const Duration(milliseconds: 180),
+                  delay: const Duration(milliseconds: 130),
+                  slide: 26,
+                  child: const Text(
+                    'Piscinas e praias\nperto de você',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w800,
+                      height: 1.12,
+                      letterSpacing: -0.6,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _Entrance(
+                  active: active,
+                  delay: const Duration(milliseconds: 170),
+                  child: Text(
+                    'Usamos a localização só para listar\nlugares e nadadores próximos.\nDá para mudar depois nas configurações.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.72),
+                      fontSize: 15.5,
+                      height: 1.45,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 28),
+                _Entrance(
+                  active: active,
+                  delay: const Duration(milliseconds: 220),
                   slide: 14,
                   child: _PrimaryCta(
                     label: 'Ativar localização',
                     onPressed: onEnable,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 _Entrance(
                   active: active,
-                  delay: const Duration(milliseconds: 230),
+                  delay: const Duration(milliseconds: 260),
                   child: TextButton(
                     onPressed: onSkip,
                     style: TextButton.styleFrom(
