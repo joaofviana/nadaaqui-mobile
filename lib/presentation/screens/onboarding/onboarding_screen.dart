@@ -28,7 +28,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
   static const _total = 4;
 
-  // Unsplash 2000px / q=92 — enquadramento cinematográfico de natação
   static const _imgTribe =
       'https://images.unsplash.com/photo-1530549387789-4c1017266635?w=2000&q=92&auto=format&fit=crop';
   static const _imgEvolve =
@@ -70,24 +69,25 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       );
       return;
     }
-    await _finishToLogin();
+    await _finish();
   }
 
   Future<void> _enableLocation() async {
     await ref.read(locationControllerProvider.notifier).ensurePermissionOnce();
-    await _finishToLogin();
+    await _finish();
   }
 
-  Future<void> _skipToLogin() async {
-    await _finishToLogin();
+  Future<void> _skip() async {
+    await _finish();
   }
 
-  Future<void> _finishToLogin() async {
+  /// Entra no app como convidado; login só quando a ação pedir.
+  Future<void> _finish() async {
     if (_exiting) return;
     setState(() => _exiting = true);
     await ref.read(onboardingStoreProvider.notifier).complete();
     await _exitCtrl.forward();
-    if (mounted) context.go('/entrar');
+    if (mounted) context.go('/mapa');
   }
 
   @override
@@ -158,9 +158,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                         const _BrandMarkCompact(),
                         const Spacer(),
                         TextButton(
-                          onPressed: _skipToLogin,
+                          onPressed: _skip,
                           style: TextButton.styleFrom(
-                            foregroundColor: Colors.white.withValues(alpha: 0.75),
+                            foregroundColor:
+                                Colors.white.withValues(alpha: 0.75),
                             padding: const EdgeInsets.symmetric(
                               horizontal: 14,
                               vertical: 10,
@@ -240,7 +241,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
           key: const ValueKey('gps'),
           imageUrl: _imgGps,
           onEnable: _enableLocation,
-          onSkip: _skipToLogin,
+          onSkip: _skip,
           pageIndex: 3,
           total: _total,
           active: _page == 3,
