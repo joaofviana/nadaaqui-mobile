@@ -28,19 +28,23 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-0.1.12.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-0.1.13.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.12-${{ steps.timestamp.outputs.ts }}
-          name: NadaAqui 0.1.12 — onboarding HQ v3
+          tag_name: v0.1.13-${{ steps.timestamp.outputs.ts }}
+          name: NadaAqui 0.1.13 — mapa decisão + compose + onboarding
           body: |
             ## Nesta build
 
-            - **Onboarding v3** redesenhado (fotos 2k, tipografia, card de sessão, ritmos realistas)
-            - Chave `onboarding.v3.done` → aparece de novo após instalar
-            - Social real (perfil, follow, seguindo)
+            - **Mapa Explorar:** pins, cluster, ficha decisão, localização, filtros
+            - **Compose** sem borda quebrada
+            - **Onboarding v3** HQ
+            - Model Place com rating / presença (após SQL no Supabase)
+
+            ### SQL no Supabase (mapa)
+            https://raw.githubusercontent.com/joaofviana/nadaaqui-backend/main/supabase/migrations/20260928020000_map_places_enrich.sql
 
             Sideload Android.
-          files: dist/nadaaqui-0.1.12.apk
+          files: dist/nadaaqui-0.1.13.apk
           target_commitish: main
           make_latest: true
