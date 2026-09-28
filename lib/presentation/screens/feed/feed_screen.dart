@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/network/dio_client.dart';
+import '../../../core/session/session_store.dart';
+import '../../../data/api/social_api.dart';
+import '../../../data/models/auth_session.dart';
 import '../../providers/feed_store.dart';
 import '../../theme/app_colors.dart';
-import '../../../core/session/session_store.dart';
-import '../../../data/models/auth_session.dart';
 import '../clubs/clubs_tab.dart';
 import '../compose/compose_screen.dart';
 
-/// Abas do Feed: Clubes | Explorar | Seguindo.
 enum FeedTab { clubes, explorar, seguindo }
 
 class FeedScreen extends ConsumerStatefulWidget {
@@ -20,7 +21,52 @@ class FeedScreen extends ConsumerStatefulWidget {
 }
 
 class _FeedScreenState extends ConsumerState<FeedScreen> {
-  FeedTab _tab = FeedTab.clubes;
+  FeedTab _tab = FeedTab.explorar;
+  List<FeedPost> _followingPosts = const [];
+  bool _followingLoading = false;
+  String? _followingError;
+  bool _followingLoaded = false;
+
+  Future<void> _loadFollowing() async {
+    final session = ref.read(sessionStoreProvider);
+    if (session == null) {
+      setState(() {
+        _followingPosts = const [];
+        _followingLoading = false;
+        _followingError = null;
+        _followingLoaded = true;
+      });
+      return;
+    }
+    setState(() {
+      _followingLoading = true;
+      _followingError = null;
+    });
+    try {
+      final posts =
+          await SocialApi(ref.read(dioProvider)).listFollowingFeed();
+      if (!mounted) return;
+      setState(() {
+        _followingPosts = posts;
+        _followingLoading = false;
+        _followingLoaded = true;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _followingLoading = false;
+        _followingLoaded = true;
+        _followingError = 'Não foi possível carregar quem você segue.';
+      });
+    }
+  }
+
+  void _selectTab(FeedTab tab) {
+    setState(() => _tab = tab);
+    if (tab == FeedTab.seguindo && !_followingLoaded) {
+      _loadFollowing();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +107,8 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                       IconButton(
                         tooltip: 'Criar clube',
                         onPressed: () => context.push('/clubes/novo'),
-                        icon: Icon(Icons.group_add_outlined, color: t.text, size: 26),
+                        icon: Icon(Icons.group_add_outlined,
+                            color: t.text, size: 26),
                       ),
                     ],
                   ),
@@ -73,17 +120,17 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                       _FeedTabLabel(
                         label: 'Clubes',
                         selected: _tab == FeedTab.clubes,
-                        onTap: () => setState(() => _tab = FeedTab.clubes),
+                        onTap: () => _selectTab(FeedTab.clubes),
                       ),
                       _FeedTabLabel(
                         label: 'Explorar',
                         selected: _tab == FeedTab.explorar,
-                        onTap: () => setState(() => _tab = FeedTab.explorar),
+                        onTap: () => _selectTab(FeedTab.explorar),
                       ),
                       _FeedTabLabel(
                         label: 'Seguindo',
                         selected: _tab == FeedTab.seguindo,
-                        onTap: () => setState(() => _tab = FeedTab.seguindo),
+                        onTap: () => _selectTab(FeedTab.seguindo),
                       ),
                     ],
                   ),
@@ -122,19 +169,59 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     if (_tab == FeedTab.clubes) {
       return const ClubsTab();
     }
+
     if (_tab == FeedTab.seguindo) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Text(
-            'Publicações de quem você segue aparecem aqui em breve.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: t.textMuted, fontSize: 15, height: 1.4),
+      if (session == null) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              'Entre na conta para ver publicações de quem você segue.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: t.textMuted, height: 1.4),
+            ),
           ),
+        );
+      }
+      if (_followingLoading) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (_followingError != null) {
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_followingError!,
+                  style: TextStyle(color: t.textMuted)),
+              const SizedBox(height: 12),
+              TextButton(onPressed: _loadFollowing, child: const Text('Tentar de novo')),
+            ],
+          ),
+        );
+      }
+      if (_followingPosts.isEmpty) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              'Nada por aqui ainda.\nSiga nadadores no perfil deles para ver as publicações aqui.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: t.textMuted, height: 1.4),
+            ),
+          ),
+        );
+      }
+      return RefreshIndicator(
+        onRefresh: _loadFollowing,
+        child: ListView.builder(
+          itemCount: _followingPosts.length,
+          itemBuilder: (context, i) =>
+              _FeedPostTile(post: _followingPosts[i]),
         ),
       );
     }
 
+    // Explorar
     if (feed.loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -248,6 +335,9 @@ class _FeedPostTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final i = post.colorIndex % _bg.length;
     final t = NadaTokens.of(context);
+    final canOpenProfile =
+        post.authorId != null && post.authorId!.isNotEmpty;
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
@@ -261,7 +351,9 @@ class _FeedPostTile extends ConsumerWidget {
             child: Row(
               children: [
                 GestureDetector(
-                  onTap: () => context.push('/usuario/${post.authorId}'),
+                  onTap: canOpenProfile
+                      ? () => context.push('/usuario/${post.authorId}')
+                      : null,
                   child: CircleAvatar(
                     radius: 20,
                     backgroundColor: _bg[i],
@@ -277,23 +369,28 @@ class _FeedPostTile extends ConsumerWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        post.name,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: t.text,
-                          fontSize: 15,
+                  child: GestureDetector(
+                    onTap: canOpenProfile
+                        ? () => context.push('/usuario/${post.authorId}')
+                        : null,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          post.name,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: t.text,
+                            fontSize: 15,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${post.handle} · ${post.timeLabel}',
-                        style: TextStyle(color: t.textMuted, fontSize: 13),
-                      ),
-                    ],
+                        const SizedBox(height: 2),
+                        Text(
+                          '${post.handle} · ${post.timeLabel}',
+                          style: TextStyle(color: t.textMuted, fontSize: 13),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
