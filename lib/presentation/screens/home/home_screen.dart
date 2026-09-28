@@ -61,7 +61,7 @@ NearbyPoolMock _cardFromPlace(
       PlaceType.pool => 'Piscina',
       PlaceType.club => 'Clube',
       PlaceType.beach => 'Praia',
-      _ => 'Tanque',
+      _ => 'Local',
     },
     accessLabel: p.priceType == PriceType.free
         ? 'Grátis'
@@ -76,7 +76,7 @@ NearbyPoolMock _cardFromPlace(
   );
 }
 
-/// HOME IA — Piscinas próximas (tab Mapa / discovery).
+/// HOME — Piscinas próximas (tab Mapa / discovery).
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -187,7 +187,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     readOnly: true,
                     onTap: () => context.go('/mapa/explorar'),
                     decoration: InputDecoration(
-                      hintText: 'Buscar piscinas, bairro ou #tag…',
+                      hintText: 'Buscar piscinas, bairro ou clube…',
                       prefixIcon:
                           Icon(Icons.search, color: t.textMuted, size: 22),
                       contentPadding: const EdgeInsets.symmetric(
@@ -213,7 +213,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Sem conexão com o servidor agora.',
+                          'Sem conexão agora',
                           style: TextStyle(
                             color: t.error,
                             fontWeight: FontWeight.w700,
@@ -245,7 +245,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(20),
                     child: Text(
-                      'Live conectado, mas nenhum place publicado. Confira o seed no dashboard.',
+                      'Ainda não encontramos piscinas publicadas perto de você. Puxe para atualizar ou explore o mapa.',
                       style: TextStyle(color: t.textMuted, height: 1.4),
                     ),
                   ),
@@ -348,7 +348,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       TextButton(
                         onPressed: () => context.go('/mapa/explorar'),
                         child: Text(
-                          'ver todas',
+                          'Ver todas',
                           style: TextStyle(
                             color: t.accent,
                             fontWeight: FontWeight.w600,
