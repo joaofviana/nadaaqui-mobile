@@ -28,23 +28,21 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-0.1.13.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-0.1.14.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.13-${{ steps.timestamp.outputs.ts }}
-          name: NadaAqui 0.1.13 — mapa decisão + compose + onboarding
+          tag_name: v0.1.14-${{ steps.timestamp.outputs.ts }}
+          name: NadaAqui 0.1.14 — polish Play Store
           body: |
-            ## Nesta build
+            ## Polish checklist (sem feature nova)
 
-            - **Mapa Explorar:** pins, cluster, ficha decisão, localização, filtros
-            - **Compose** sem borda quebrada
-            - **Onboarding v3** HQ
-            - Model Place com rating / presença (após SQL no Supabase)
-
-            ### SQL no Supabase (mapa)
-            https://raw.githubusercontent.com/joaofviana/nadaaqui-backend/main/supabase/migrations/20260928020000_map_places_enrich.sql
+            - **Convidado** pode explorar após onboarding (login só quando a ação pede)
+            - Onboarding termina no **Mapa**
+            - Login: **Explorar sem conta**
+            - Copy humana (sem dashboard/seed)
+            - Badge LIVE/MOCK só em debug; rota /debug só em debug
 
             Sideload Android.
-          files: dist/nadaaqui-0.1.13.apk
+          files: dist/nadaaqui-0.1.14.apk
           target_commitish: main
           make_latest: true
