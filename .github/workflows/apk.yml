@@ -28,20 +28,20 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-0.1.15.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist/nadaaqui-0.1.16.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.15-${{ steps.timestamp.outputs.ts }}
-          name: NadaAqui 0.1.15 — mapa real com ruas
+          tag_name: v0.1.16-${{ steps.timestamp.outputs.ts }}
+          name: NadaAqui 0.1.16 — mapa real + fixes
           body: |
-            ## Mapa real
+            ## Correções e melhorias
 
-            - OpenStreetMap / Carto dark com **nomes de ruas**
-            - Pins das piscinas no mapa
-            - Minha localização, enquadrar, recentrar
-            - Ficha inferior + Como chegar
+            - **Mapa real OSM** com ruas (build corrigido)
+            - Attribution OpenStreetMap compatível com flutter_map 7
+            - **Como chegar** abre Google Maps via url_launcher
+            - Queries Android para Maps / https
 
             Sideload Android.
-          files: dist/nadaaqui-0.1.15.apk
+          files: dist/nadaaqui-0.1.16.apk
           target_commitish: main
           make_latest: true
