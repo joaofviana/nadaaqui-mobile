@@ -163,7 +163,7 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
     if (!ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Não foi possível abrir o mapa para ${p.name}'),
+          content: Text('Não foi possível abrir a rota para ${p.name}'),
         ),
       );
     }
@@ -928,17 +928,23 @@ class _DecisionSheet extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  OutlinedButton(
-                    onPressed: onDirections,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: t.text,
-                      side: BorderSide(color: t.border),
-                      minimumSize: const Size(48, 48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: onDirections,
+                      icon: const Icon(Icons.waves_rounded, size: 18),
+                      label: const Text(
+                        'Como ir nadar',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: t.text,
+                        side: BorderSide(color: t.border),
+                        minimumSize: const Size.fromHeight(48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                     ),
-                    child: const Icon(Icons.directions_rounded),
                   ),
                 ],
               ),
